@@ -1,0 +1,10 @@
+{
+    "name": "Xhear.js",
+    "version": "3.0.0",
+    "description": "stanz elements",
+    "scripts": {
+        "watch": "node scripts/watch.js"
+    },
+    "author": "YAO",
+    "license": "MIT"
+}
