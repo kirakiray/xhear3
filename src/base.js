@@ -4,7 +4,7 @@
     //<!--class-->
 
     // handle
-    let XhearHandler = {
+    let XhearElementHandler = {
         get: function (target, key, receiver) {
             // 判断是否纯数字
             if (/\D/.test(key)) {
@@ -28,7 +28,7 @@
     };
 
     // class
-    let Xhear = function (ele) {
+    let XhearElement = function (ele) {
         defineProperties(this, {
             ele: {
                 value: ele
@@ -40,13 +40,13 @@
             }
         });
 
-        return new Proxy(this, XhearHandler);
+        return new Proxy(this, XhearElementHandler);
     };
 
-    // Xhear prototype
-    let XhearFn = {};
-    Xhear.prototype = XhearFn;
-    let XhearFnGetterOption = {
+    // XhearElement prototype
+    let XhearElementFn = {};
+    XhearElement.prototype = XhearElementFn;
+    let XhearElementFnGetterOption = {
         parent() {
             return init(this.ele.parentNode);
         },
@@ -61,12 +61,11 @@
         },
         // 是否注册的Xele
         xvele() {
-            return false;
+            return this.ele.attributes.hasOwnProperty('xv-ele') || this.ele.attributes.hasOwnProperty('xv-render');
         },
         // 是否渲染过
         rendered() {
             return false;
-
         },
         class() {
             return this.ele.classList;
@@ -87,7 +86,7 @@
             }
 
             this.forEach((e, i) => {
-                if (e instanceof Xhear) {
+                if (e instanceof XhearElement) {
                     obj[i] = e.object;
                 } else {
                     obj[i] = e;
@@ -105,9 +104,9 @@
     //<!--likejQuery-->
 
     // 整理成 defineProperties getter 的参数对象
-    for (let k in XhearFnGetterOption) {
-        XhearFnGetterOption[k] = {
-            get: XhearFnGetterOption[k]
+    for (let k in XhearElementFnGetterOption) {
+        XhearElementFnGetterOption[k] = {
+            get: XhearElementFnGetterOption[k]
         };
     }
 
@@ -115,7 +114,7 @@
     ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'map', 'slice', 'some'].forEach(methodName => {
         let oldFunc = Array.prototype[methodName];
         if (oldFunc) {
-            defineProperty(XhearFn, methodName, {
+            defineProperty(XhearElementFn, methodName, {
                 value(...args) {
                     return oldFunc.apply(Array.from(this.ele.children).map(e => init(e)), args);
                 }
@@ -128,30 +127,40 @@
 
     });
 
-    defineProperties(XhearFn, XhearFnGetterOption);
+    defineProperties(XhearElementFn, XhearElementFnGetterOption);
 
     // main
     // 初始元素的方法
     const init = (ele) => {
-        return new Xhear(ele);
+        return new XhearElement(ele);
     }
 
     // 全局用$
     let $ = (expr) => {
         let reobj;
+
+        // expr type
+        let exprType = getType(expr);
+
         if (expr instanceof Element) {
             reobj = init(expr);
-        } else {
-            reobj = document.querySelector(expr);
-            reobj = init(reobj)
+        } else if (exprType == "string") {
+            if (expr.search("<") > -1) {
+
+            } else {
+                reobj = document.querySelector(expr);
+                reobj = init(reobj);
+            }
         }
         return reobj;
     }
 
     // init 
     glo.$ = $;
-
-    $.fn = XhearFn;
+    assign($, {
+        fn: XhearElementFn,
+        type: getType
+    });
 
     //<!--register-->
 

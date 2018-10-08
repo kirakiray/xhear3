@@ -32,7 +32,7 @@ defineProperties(TokenListFn, {
 });
 
     // handle
-    let XhearHandler = {
+    let XhearElementHandler = {
         get: function (target, key, receiver) {
             // 判断是否纯数字
             if (/\D/.test(key)) {
@@ -56,7 +56,7 @@ defineProperties(TokenListFn, {
     };
 
     // class
-    let Xhear = function (ele) {
+    let XhearElement = function (ele) {
         defineProperties(this, {
             ele: {
                 value: ele
@@ -68,13 +68,13 @@ defineProperties(TokenListFn, {
             }
         });
 
-        return new Proxy(this, XhearHandler);
+        return new Proxy(this, XhearElementHandler);
     };
 
-    // Xhear prototype
-    let XhearFn = {};
-    Xhear.prototype = XhearFn;
-    let XhearFnGetterOption = {
+    // XhearElement prototype
+    let XhearElementFn = {};
+    XhearElement.prototype = XhearElementFn;
+    let XhearElementFnGetterOption = {
         parent() {
             return init(this.ele.parentNode);
         },
@@ -89,12 +89,11 @@ defineProperties(TokenListFn, {
         },
         // 是否注册的Xele
         xvele() {
-            return false;
+            return this.ele.attributes.hasOwnProperty('xv-ele') || this.ele.attributes.hasOwnProperty('xv-render');
         },
         // 是否渲染过
         rendered() {
             return false;
-
         },
         class() {
             return this.ele.classList;
@@ -115,7 +114,7 @@ defineProperties(TokenListFn, {
             }
 
             this.forEach((e, i) => {
-                if (e instanceof Xhear) {
+                if (e instanceof XhearElement) {
                     obj[i] = e.object;
                 } else {
                     obj[i] = e;
@@ -134,7 +133,7 @@ defineProperties(TokenListFn, {
 let likejQFn = {
     show() {},
     hide() {},
-    // css() {},
+    css() {},
     on() {},
     one() {},
     off() {},
@@ -147,50 +146,12 @@ let likejQFn = {
 };
 
 for (let fName in likejQFn) {
-    defineProperty(XhearFn, fName, {
+    defineProperty(XhearElementFn, fName, {
         value: likejQFn[fName]
     });
 }
 
-// css属性专用Proxy handler
-// const cssProxyHandler = {
-//     get(target, key, receiver) {
-//         debugger
-//     },
-//     set(target, key, value, receiver) {
-//         debugger
-//     }
-// };
-
-// defineProperties(XhearFn, {
-//     css: {
-//         get() {
-//             // 获取style
-//             let {
-//                 style
-//             } = this.ele;
-//             let styleKeys = Array.from(style);
-
-//             let reobj = {};
-
-//             styleKeys.forEach(k => {
-//                 reobj[k] = style[k];
-//             });
-
-//             return new Proxy(reobj, cssProxyHandler);
-//         },
-//         set(options) {
-//             // 设置style
-//             let styleKeys = Array.from(this.ele.style);
-
-//             let {
-//                 style
-//             } = this.ele;
-//         }
-//     }
-// });
-
-assign(XhearFnGetterOption, {
+assign(XhearElementFnGetterOption, {
     position() {
 
     },
@@ -200,9 +161,9 @@ assign(XhearFnGetterOption, {
 });
 
     // 整理成 defineProperties getter 的参数对象
-    for (let k in XhearFnGetterOption) {
-        XhearFnGetterOption[k] = {
-            get: XhearFnGetterOption[k]
+    for (let k in XhearElementFnGetterOption) {
+        XhearElementFnGetterOption[k] = {
+            get: XhearElementFnGetterOption[k]
         };
     }
 
@@ -210,7 +171,7 @@ assign(XhearFnGetterOption, {
     ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'map', 'slice', 'some'].forEach(methodName => {
         let oldFunc = Array.prototype[methodName];
         if (oldFunc) {
-            defineProperty(XhearFn, methodName, {
+            defineProperty(XhearElementFn, methodName, {
                 value(...args) {
                     return oldFunc.apply(Array.from(this.ele.children).map(e => init(e)), args);
                 }
@@ -223,30 +184,40 @@ assign(XhearFnGetterOption, {
 
     });
 
-    defineProperties(XhearFn, XhearFnGetterOption);
+    defineProperties(XhearElementFn, XhearElementFnGetterOption);
 
     // main
     // 初始元素的方法
     const init = (ele) => {
-        return new Xhear(ele);
+        return new XhearElement(ele);
     }
 
     // 全局用$
     let $ = (expr) => {
         let reobj;
+
+        // expr type
+        let exprType = getType(expr);
+
         if (expr instanceof Element) {
             reobj = init(expr);
-        } else {
-            reobj = document.querySelector(expr);
-            reobj = init(reobj)
+        } else if (exprType == "string") {
+            if (expr.search("<") > -1) {
+
+            } else {
+                reobj = document.querySelector(expr);
+                reobj = init(reobj);
+            }
         }
         return reobj;
     }
 
     // init 
     glo.$ = $;
-
-    $.fn = XhearFn;
+    assign($, {
+        fn: XhearElementFn,
+        type: getType
+    });
 
     $.register = (options) => {
     let defaults = {
