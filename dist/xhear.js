@@ -34,15 +34,14 @@ defineProperties(TokenListFn, {
     // handle
     let XhearHandler = {
         get: function (target, key, receiver) {
-            // console.log(`getting ${key}!`);
-
             // 判断是否纯数字
             if (/\D/.test(key)) {
                 // 不是纯数字
                 return Reflect.get(target, key, receiver);
             } else {
                 // 纯数字，返回数组内的结构
-                return target.ele.children[key];
+                let ele = target.ele.children[key]
+                return ele && init(ele);
             }
 
         },
@@ -58,48 +57,95 @@ defineProperties(TokenListFn, {
 
     // class
     let Xhear = function (ele) {
-        defineProperty(this, 'ele', {
-            value: ele
+        defineProperties(this, {
+            ele: {
+                value: ele
+            },
+            tag: {
+                writeable: false,
+                enumerable: true,
+                value: ele.tagName.toLowerCase()
+            }
         });
+
         return new Proxy(this, XhearHandler);
     };
-    let XhearFn = Object.create(Array.prototype);
+    // let XhearFn = Object.create(Array.prototype);
+    let XhearFn = {};
     Xhear.prototype = XhearFn;
     let XhearFnDPOption = {
+        parent() {
+            return init(this.ele.parentNode);
+        },
+        index() {
+            return this.parent.findIndex(e => e.ele == this.ele);
+        },
         // 是否注册的Xele
-        xvele: {
-            get() {
-                return false;
-            }
+        xvele() {
+            return false;
         },
         // 是否渲染过
-        rendered: {
-            get() {
-                return false;
-            }
+        rendered() {
+            return false;
+
         },
-        // 标签名
-        tag: {
-            get() {
-                return this.ele.tagName.toLowerCase();
-            }
+        class() {
+            return this.ele.classList;
+
         },
-        class: {
-            get() {
-                return this.ele.classList;
-            }
+        string() {
+            return JSON.stringify(this.object);
+
         },
-        string: {
-            get() {
-                return JSON.stringify(this);
+        object() {
+            let obj = {
+                tag: this.tag
+            };
+
+            // 非xvele就保留class属性
+            if (!this.xvele) {
+                obj.class = this.ele.classList.value;
             }
+
+            this.forEach((e, i) => {
+                if (e instanceof Xhear) {
+                    obj[i] = e.object;
+                } else {
+                    obj[i] = e;
+                }
+            });
+            obj.length = this.length;
+            return obj;
+
         },
-        object: {
-            get() {
-                return JSON.parse(this.string);
-            }
-        },
+        length() {
+            return this.ele.children.length;
+
+        }
     };
+    for (let k in XhearFnDPOption) {
+        XhearFnDPOption[k] = {
+            get: XhearFnDPOption[k]
+        };
+    }
+
+    // 可运行的方法
+    ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'includes', 'indexOf', 'lastIndexOf', 'map', 'slice', 'some'].forEach(methodName => {
+        let oldFunc = Array.prototype[methodName];
+        if (oldFunc) {
+            defineProperty(XhearFn, methodName, {
+                value(...args) {
+                    return oldFunc.apply(Array.from(this.ele.children).map(e => init(e)), args);
+                }
+            });
+        }
+    });
+
+    // 会影响数组结构的方法
+    ['pop', 'push', 'reverse', 'sort', 'splice', 'shift', 'unshift'].forEach(methodName => {
+
+    });
+
     defineProperties(XhearFn, XhearFnDPOption);
 
     // main
@@ -114,14 +160,14 @@ defineProperties(TokenListFn, {
         return init(tarEle);
     }
 
+    // init 
+    glo.$ = $;
+
     $.register = (options) => {
     let defaults = {
         tag: ""
     };
     assign(defaults, options);
 }
-
-    // init 
-    glo.$ = $;
 
 })(window);
