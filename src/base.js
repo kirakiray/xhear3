@@ -42,12 +42,19 @@
 
         return new Proxy(this, XhearHandler);
     };
-    // let XhearFn = Object.create(Array.prototype);
+
+    // Xhear prototype
     let XhearFn = {};
     Xhear.prototype = XhearFn;
-    let XhearFnDPOption = {
+    let XhearFnGetterOption = {
         parent() {
             return init(this.ele.parentNode);
+        },
+        next() {
+            return this.ele.nextElementSibling && init(this.ele.nextElementSibling);
+        },
+        prev() {
+            return this.ele.previousElementSibling && init(this.ele.previousElementSibling);
         },
         index() {
             return this.parent.findIndex(e => e.ele == this.ele);
@@ -92,17 +99,20 @@
         },
         length() {
             return this.ele.children.length;
-
         }
     };
-    for (let k in XhearFnDPOption) {
-        XhearFnDPOption[k] = {
-            get: XhearFnDPOption[k]
+
+    //<!--likejQuery-->
+
+    // 整理成 defineProperties getter 的参数对象
+    for (let k in XhearFnGetterOption) {
+        XhearFnGetterOption[k] = {
+            get: XhearFnGetterOption[k]
         };
     }
 
     // 可运行的方法
-    ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'includes', 'indexOf', 'lastIndexOf', 'map', 'slice', 'some'].forEach(methodName => {
+    ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'map', 'slice', 'some'].forEach(methodName => {
         let oldFunc = Array.prototype[methodName];
         if (oldFunc) {
             defineProperty(XhearFn, methodName, {
@@ -118,7 +128,7 @@
 
     });
 
-    defineProperties(XhearFn, XhearFnDPOption);
+    defineProperties(XhearFn, XhearFnGetterOption);
 
     // main
     // 初始元素的方法
@@ -128,12 +138,20 @@
 
     // 全局用$
     let $ = (expr) => {
-        let tarEle = document.querySelector(expr);
-        return init(tarEle);
+        let reobj;
+        if (expr instanceof Element) {
+            reobj = init(expr);
+        } else {
+            reobj = document.querySelector(expr);
+            reobj = init(reobj)
+        }
+        return reobj;
     }
 
     // init 
     glo.$ = $;
+
+    $.fn = XhearFn;
 
     //<!--register-->
 
