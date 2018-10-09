@@ -18,7 +18,7 @@
 
         },
         set: function (target, key, value, receiver) {
-            console.log(`setting ${key}!`);
+            // console.log(`setting ${key}!`);
             return Reflect.set(target, key, value, receiver);
         },
         deleteProperty(target, key) {
@@ -146,11 +146,11 @@
             reobj = init(expr);
         } else if (exprType == "string") {
             if (expr.search("<") > -1) {
-
+                reobj = parseStringToDom(expr)[0];
             } else {
                 reobj = document.querySelector(expr);
-                reobj = init(reobj);
             }
+            reobj = init(reobj);
         }
         return reobj;
     }
@@ -159,7 +159,10 @@
     glo.$ = $;
     assign($, {
         fn: XhearElementFn,
-        type: getType
+        type: getType,
+        init,
+        que: (expr, root = document) => Array.from(root.querySelectorAll(expr)).map(e => init(e))
+
     });
 
     //<!--register-->

@@ -10,6 +10,24 @@ let {
     assign
 } = Object
 
+// 转换元素
+const parseStringToDom = (str) => {
+    let par = document.createElement('div');
+    par.innerHTML = str;
+    let childs = Array.from(par.childNodes);
+    return childs.filter(function (e) {
+        if (!(e instanceof Text) || (e.textContent && e.textContent.trim())) {
+            return e;
+        }
+    });
+};
+
+const parseDataToDom = (data) => {
+    if (data.tag) {
+        
+    }
+}
+
     // 属性切换器
 function TokenList(ele, key) {
     defineProperties(this, {
@@ -46,7 +64,7 @@ defineProperties(TokenListFn, {
 
         },
         set: function (target, key, value, receiver) {
-            console.log(`setting ${key}!`);
+            // console.log(`setting ${key}!`);
             return Reflect.set(target, key, value, receiver);
         },
         deleteProperty(target, key) {
@@ -130,10 +148,15 @@ defineProperties(TokenListFn, {
     };
 
     // 模拟类jQuery的方法
-let likejQFn = {
-    show() {},
-    hide() {},
-    css() {},
+const likejQFn = {
+    show() {
+        this.style.display = "";
+        return this;
+    },
+    hide() {
+        this.style.display = "none";
+        return this;
+    },
     on() {},
     one() {},
     off() {},
@@ -142,7 +165,11 @@ let likejQFn = {
     before() {},
     after() {},
     remove() {},
-    empty() {}
+    empty() {},
+    // like jQuery function find
+    que(expr) {
+        return $.que(expr, this.ele);
+    }
 };
 
 for (let fName in likejQFn) {
@@ -151,12 +178,68 @@ for (let fName in likejQFn) {
     });
 }
 
+defineProperties(XhearElementFn, {
+    text: {
+        get() {
+            return this.ele.textContent;
+        },
+        set(d) {
+            this.ele.textContent = d;
+        }
+    },
+    html: {
+        get() {
+            return this.ele.innerHTML;
+        },
+        set(d) {
+            this.ele.innerHTML = d;
+        }
+    },
+    style: {
+        get() {
+            return this.ele.style;
+        },
+        set(d) {
+            let {
+                style
+            } = this;
+
+            // 覆盖旧的样式
+            let hasKeys = Array.from(style);
+            let nextKeys = Object.keys(d);
+
+            // 清空不用设置的key
+            hasKeys.forEach(k => {
+                if (!nextKeys.includes(k)) {
+                    style[k] = "";
+                }
+            });
+
+            assign(style, d);
+        }
+    }
+});
+
 assign(XhearElementFnGetterOption, {
     position() {
-
+        return {
+            top: this.ele.offsetTop,
+            left: this.ele.offsetLeft
+        };
     },
     offset() {
+        let reobj = {
+            top: 0,
+            left: 0
+        };
 
+        let tar = this.ele;
+        while (tar !== document) {
+            reobj.top += tar.offsetTop;
+            reobj.left += tar.offsetLeft;
+            tar = tar.offsetParent
+        }
+        return reobj;
     }
 });
 
@@ -203,11 +286,11 @@ assign(XhearElementFnGetterOption, {
             reobj = init(expr);
         } else if (exprType == "string") {
             if (expr.search("<") > -1) {
-
+                reobj = parseStringToDom(expr)[0];
             } else {
                 reobj = document.querySelector(expr);
-                reobj = init(reobj);
             }
+            reobj = init(reobj);
         }
         return reobj;
     }
@@ -216,7 +299,10 @@ assign(XhearElementFnGetterOption, {
     glo.$ = $;
     assign($, {
         fn: XhearElementFn,
-        type: getType
+        type: getType,
+        init,
+        que: (expr, root = document) => Array.from(root.querySelectorAll(expr)).map(e => init(e))
+
     });
 
     $.register = (options) => {
