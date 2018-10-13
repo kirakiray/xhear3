@@ -13,7 +13,7 @@
             } else {
                 // 纯数字，返回数组内的结构
                 let ele = target.ele.children[key]
-                return ele && init(ele);
+                return ele && createXHearElement(ele);
             }
 
         },
@@ -48,13 +48,13 @@
     XhearElement.prototype = XhearElementFn;
     let XhearElementFnGetterOption = {
         parent() {
-            return init(this.ele.parentNode);
+            return createXHearElement(this.ele.parentNode);
         },
         next() {
-            return this.ele.nextElementSibling && init(this.ele.nextElementSibling);
+            return this.ele.nextElementSibling && createXHearElement(this.ele.nextElementSibling);
         },
         prev() {
-            return this.ele.previousElementSibling && init(this.ele.previousElementSibling);
+            return this.ele.previousElementSibling && createXHearElement(this.ele.previousElementSibling);
         },
         index() {
             return this.parent.findIndex(e => e.ele == this.ele);
@@ -101,6 +101,53 @@
         }
     };
 
+    // 设置成不可枚举的属性对象
+    let XElementPriFn = {};
+
+    // 可运行的方法
+    ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'map', 'slice', 'some'].forEach(methodName => {
+        let oldFunc = Array.prototype[methodName];
+        if (oldFunc) {
+            // defineProperty(XhearElementFn, methodName, {
+            //     value(...args) {
+            //         return oldFunc.apply(Array.from(this.ele.children).map(e => createXHearElement(e)), args);
+            //     }
+            // });
+            XElementPriFn[methodName] = function (...args) {
+                return oldFunc.apply(Array.from(this.ele.children).map(e => createXHearElement(e)), args);
+            };
+        }
+    });
+
+    // 会影响数组结构的方法
+    // ['pop', 'push', 'reverse', 'sort', 'splice', 'shift', 'unshift'].forEach(methodName => {
+
+    // });
+
+    XElementPriFn.unshift = function (...items) {
+        this.splice(0, 0, ...items);
+        return this;
+    };
+
+    XElementPriFn.push = function (...items) {
+        this.splice(this.length, 0, ...items);
+        return this;
+    };
+
+    // 实现splice，然后主要的 shift unshift pop push 都基于splice实现
+    XElementPriFn.splice = function (index, howmany, ...items) {
+        let tar = this.ele.children[index];
+        if (index >= 0 && tar) {
+            items.forEach(e => {
+                this.ele.insertBefore(parseToXHearElement(e).ele, tar);
+            });
+        } else {
+            items.forEach(e => {
+                this.ele.appendChild(parseToXHearElement(e).ele);
+            });
+        }
+    };
+
     //<!--likejQuery-->
 
     // 整理成 defineProperties getter 的参数对象
@@ -110,49 +157,52 @@
         };
     }
 
-    // 可运行的方法
-    ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'map', 'slice', 'some'].forEach(methodName => {
-        let oldFunc = Array.prototype[methodName];
-        if (oldFunc) {
-            defineProperty(XhearElementFn, methodName, {
-                value(...args) {
-                    return oldFunc.apply(Array.from(this.ele.children).map(e => init(e)), args);
-                }
-            });
-        }
-    });
-
-    // 会影响数组结构的方法
-    ['pop', 'push', 'reverse', 'sort', 'splice', 'shift', 'unshift'].forEach(methodName => {
-
-    });
+    for (let fName in XElementPriFn) {
+        defineProperty(XhearElementFn, fName, {
+            value: XElementPriFn[fName]
+        });
+    }
 
     defineProperties(XhearElementFn, XhearElementFnGetterOption);
 
     // main
-    // 初始元素的方法
-    const init = (ele) => {
-        return new XhearElement(ele);
-    }
+    const createXHearElement = ele => ele && new XhearElement(ele);
+    const parseToXHearElement = expr => {
+        if (expr instanceof XhearElement) {
+            return expr;
+        }
 
-    // 全局用$
-    let $ = (expr) => {
         let reobj;
 
         // expr type
         let exprType = getType(expr);
 
         if (expr instanceof Element) {
-            reobj = init(expr);
+            reobj = createXHearElement(expr);
         } else if (exprType == "string") {
-            if (expr.search("<") > -1) {
-                reobj = parseStringToDom(expr)[0];
-            } else {
-                reobj = document.querySelector(expr);
-            }
-            reobj = init(reobj);
+            reobj = parseStringToDom(expr)[0];
+            reobj = createXHearElement(reobj);
+        } else if (exprType == "object") {
+            reobj = parseDataToDom(expr);
+            reobj = createXHearElement(reobj);
         }
+
         return reobj;
+    }
+
+    // 全局用$
+    let $ = (expr) => {
+        if (expr instanceof XhearElement) {
+            return expr;
+        }
+
+        let tar = expr;
+
+        if (getType(expr) === "string" && expr.search("<") === -1) {
+            tar = document.querySelector(expr);
+        }
+
+        return parseToXHearElement(tar);
     }
 
     // init 
@@ -160,7 +210,7 @@
     assign($, {
         fn: XhearElementFn,
         type: getType,
-        init,
+        init: createXHearElement,
         que: (expr, root = document) => Array.from(root.querySelectorAll(expr)).map(e => init(e))
 
     });

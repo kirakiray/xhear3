@@ -1,5 +1,5 @@
 // 模拟类jQuery的方法
-const likejQFn = {
+assign(XElementPriFn, {
     show() {
         this.style.display = "";
         return this;
@@ -14,20 +14,23 @@ const likejQFn = {
     trigger() {},
     triggerHandler() {},
     before() {},
-    after() {},
+    after(data) {
+        debugger
+    },
+    replace() {},
     remove() {},
-    empty() {},
+    empty() {
+        this.html = "";
+        return this;
+    },
+    siblings(expr) {
+
+    },
     // like jQuery function find
     que(expr) {
         return $.que(expr, this.ele);
     }
-};
-
-for (let fName in likejQFn) {
-    defineProperty(XhearElementFn, fName, {
-        value: likejQFn[fName]
-    });
-}
+});
 
 defineProperties(XhearElementFn, {
     text: {
