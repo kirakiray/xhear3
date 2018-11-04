@@ -108,11 +108,6 @@
     ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'map', 'slice', 'some'].forEach(methodName => {
         let oldFunc = Array.prototype[methodName];
         if (oldFunc) {
-            // defineProperty(XhearElementFn, methodName, {
-            //     value(...args) {
-            //         return oldFunc.apply(Array.from(this.ele.children).map(e => createXHearElement(e)), args);
-            //     }
-            // });
             XElementPriFn[methodName] = function (...args) {
                 return oldFunc.apply(Array.from(this.ele.children).map(e => createXHearElement(e)), args);
             };
