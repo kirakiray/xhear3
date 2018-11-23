@@ -1,6 +1,8 @@
 ((glo) => {
     //<!--public-->
 
+    //<!--xdata-->
+
     //<!--class-->
 
     // handle
@@ -18,7 +20,7 @@
 
         },
         set: function (target, key, value, receiver) {
-            // console.log(`setting ${key}!`);
+            console.log(`setting ${key}!`);
             return Reflect.set(target, key, value, receiver);
         },
         deleteProperty(target, key) {
@@ -152,13 +154,13 @@
         };
     }
 
+    defineProperties(XhearElementFn, XhearElementFnGetterOption);
+
     for (let fName in XElementPriFn) {
         defineProperty(XhearElementFn, fName, {
             value: XElementPriFn[fName]
         });
     }
-
-    defineProperties(XhearElementFn, XhearElementFnGetterOption);
 
     // main
     const createXHearElement = ele => ele && new XhearElement(ele);
@@ -206,8 +208,8 @@
         fn: XhearElementFn,
         type: getType,
         init: createXHearElement,
-        que: (expr, root = document) => Array.from(root.querySelectorAll(expr)).map(e => init(e))
-
+        que: (expr, root = document) => Array.from(root.querySelectorAll(expr)).map(e => createXHearElement(e)),
+        xdata: createXData
     });
 
     //<!--register-->
