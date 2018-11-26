@@ -76,6 +76,7 @@ const parseToXHearElement = expr => {
     }
 
     let reobj;
+
     // expr type
     let exprType = getType(expr);
 
