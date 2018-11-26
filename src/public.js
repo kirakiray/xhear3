@@ -68,7 +68,14 @@ const parseDataToDom = (data) => {
 }
 
 // main
-const createXHearElement = ele => ele && new XhearElement(ele);
+const createXHearElement = ele => {
+    let xhearEle = ele._XHearEle;
+    if (!xhearEle) {
+        xhearEle = new XhearElement(ele);
+        ele._XHearEle = xhearEle;
+    }
+    return xhearEle;
+};
 const parseToXHearElement = expr => {
     if (expr instanceof XhearElement) {
         return expr;

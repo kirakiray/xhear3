@@ -69,7 +69,14 @@ const parseDataToDom = (data) => {
 }
 
 // main
-const createXHearElement = ele => ele && new XhearElement(ele);
+const createXHearElement = ele => {
+    let xhearEle = ele._XHearEle;
+    if (!xhearEle) {
+        xhearEle = new XhearElement(ele);
+        ele._XHearEle = xhearEle;
+    }
+    return xhearEle;
+};
 const parseToXHearElement = expr => {
     if (expr instanceof XhearElement) {
         return expr;
@@ -102,6 +109,9 @@ const MODIFYHOST = "_modify_" + getRandomId();
 const MODIFYTIMER = "_modify_timer_" + getRandomId();
 
 // business function
+// 是否XData
+let isXData = obj => obj instanceof XData;
+
 // 生成xdata对象
 const createXData = (obj, options) => {
     let redata = obj;
@@ -130,7 +140,7 @@ const conditData = (exprKey, exprValue, exprType, exprEqType, tarData) => {
                     }
                     break;
                 case ":=":
-                    if (tarValue instanceof XData && tarValue.findIndex(e => e == exprValue) > -1) {
+                    if (isXData(tarValue) && tarValue.findIndex(e => e == exprValue) > -1) {
                         reData = 1;
                     }
                     break;
@@ -155,7 +165,7 @@ const conditData = (exprKey, exprValue, exprType, exprEqType, tarData) => {
                     break;
                 case ":=":
                     Object.values(tarData).some(tarValue => {
-                        if (tarValue instanceof XData && tarValue.findIndex(e => e == exprValue) > -1) {
+                        if (isXData(tarValue) && tarValue.findIndex(e => e == exprValue) > -1) {
                             reData = 1;
                             return true;
                         }
@@ -202,7 +212,7 @@ const seekData = (data, exprObj) => {
     Object.keys(data).forEach(k => {
         let tarData = data[k];
 
-        if (tarData instanceof XData) {
+        if (isXData(tarData)) {
             // 判断是否可添加
             let canAdd = conditData(exprKey, exprValue, exprType, exprEqType, tarData);
 
@@ -272,6 +282,10 @@ defineProperties(XDataEvent.prototype, {
                 modify
             } = this;
 
+            if (!modify) {
+                return;
+            }
+
             let reobj = {
                 genre: modify.genre,
                 keys: this.keys
@@ -300,7 +314,7 @@ defineProperties(XDataEvent.prototype, {
                         value
                     } = modify;
 
-                    if (value instanceof XData) {
+                    if (isXData(value)) {
                         value = value.object;
                     }
                     assign(reobj, {
@@ -348,7 +362,7 @@ function XData(obj, options = {}) {
         // 设置数组长度
         length,
         // 事件寄宿对象
-        [EVES]: {},
+        // [EVES]: {},
         // watch寄宿对象
         [WATCHHOST]: {},
         // sync 寄宿对象
@@ -433,7 +447,16 @@ let XDataFn = XData.prototype = {};
 });
 
 // 获取事件数组
-const getEvesArr = (tar, eventName) => tar[EVES][eventName] || (tar[EVES][eventName] = []);
+const getEvesArr = (tar, eventName) => {
+    if (!tar[EVES]) {
+        defineProperty(tar, EVES, {
+            value: {}
+        });
+    }
+    let eves = tar[EVES];
+    let redata = eves[eventName] || (eves[eventName] = []);
+    return redata;
+};
 
 const sortMethod = Array.prototype.sort;
 
@@ -988,7 +1011,7 @@ setNotEnumer(XDataFn, {
             // 删除
             parent.removeByKey(this.hostkey);
         } else {
-            if (value instanceof XData) {
+            if (isXData(value)) {
                 this.removeByKey(value.hostkey);
             } else {
                 let tarId = this.indexOf(value);
@@ -1030,7 +1053,7 @@ defineProperties(XDataFn, {
             Object.keys(this).forEach(k => {
                 let val = this[k];
 
-                if (val instanceof XData) {
+                if (isXData(val)) {
                     obj[k] = val.object;
                 } else {
                     obj[k] = val;
@@ -1070,7 +1093,7 @@ let XDataHandler = {
         let newValue = value;
 
         // 判断是否属于xdata数据
-        if (value instanceof XData) {
+        if (isXData(value)) {
             if (value.parent == receiver) {
                 value.hostkey = key;
             } else {
@@ -1100,8 +1123,8 @@ let XDataHandler = {
                 return true;
             }
 
-            if (oldVal instanceof XData) {
-                if (newValue instanceof XData && oldVal.string === newValue.string) {
+            if (isXData(oldVal)) {
+                if (isXData(newValue) && oldVal.string === newValue.string) {
                     // 同是object
                     return true;
                 }
@@ -1153,7 +1176,7 @@ let XDataHandler = {
             receiver = xdata.parent[xdata.hostkey];
         } else {
             Object.values(xdata).some(e => {
-                if (e instanceof XData) {
+                if (isXData(e)) {
                     receiver = e.parent;
                     return true;
                 }
@@ -1213,7 +1236,14 @@ let XhearElementHandler = {
     get(target, key, receiver) {
         // 判断是否纯数字
         if (/\D/.test(key)) {
-            // 不是纯数字
+            // if (/(parent|style|ele)/.test(key)) {
+            //     // 默认带的key
+            //     // 不是纯数字
+            //     return Reflect.get(target, key, receiver);
+            // } else {
+            //     // 不是默认key
+            //     debugger
+            // }
             return Reflect.get(target, key, receiver);
         } else {
             // 纯数字，返回数组内的结构
@@ -1261,17 +1291,17 @@ let XhearElement = function (ele) {
 };
 
 // XhearElement prototype
-let XhearElementFn = XhearElement.prototype = {};
+let XhearElementFn = XhearElement.prototype = Object.create(XDataFn);
 setNotEnumer(XhearElementFn, {
-    on() {},
-    one() {},
-    off() {},
-    emit() {},
-    watch() {},
-    unwatch() {},
-    sync() {},
-    unsync() {},
-    entrend() {},
+    // on() {},
+    // one() {},
+    // off() {},
+    // emit() {},
+    // watch() {},
+    // unwatch() {},
+    // sync() {},
+    // unsync() {},
+    // entrend() {},
     que(expr) {
         return $.que(expr, this.ele);
     }
@@ -1279,9 +1309,14 @@ setNotEnumer(XhearElementFn, {
 
 
 defineProperties(XhearElementFn, {
+    hostkey: {
+        get() {
+            return Array.from(this.ele.parentElement.children).indexOf(this.ele);
+        }
+    },
     parent: {
         get() {
-            return createXHearElement(this.ele.parentNode);
+            return createXHearElement(this.ele.parentElement);
         }
     },
     next: {
@@ -1483,11 +1518,11 @@ setNotEnumer(XhearElementFn, {
 
     // 模拟类jQuery的方法
 setNotEnumer(XhearElementFn, {
-    on() {},
-    one() {},
-    off() {},
-    trigger() {},
-    triggerHandler() {},
+    // on() {},
+    // one() {},
+    // off() {},
+    // trigger() {},
+    // triggerHandler() {},
     before(data) {
 
     },

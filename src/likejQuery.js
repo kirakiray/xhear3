@@ -1,10 +1,10 @@
 // 模拟类jQuery的方法
 setNotEnumer(XhearElementFn, {
-    on() {},
-    one() {},
-    off() {},
-    trigger() {},
-    triggerHandler() {},
+    // on() {},
+    // one() {},
+    // off() {},
+    // trigger() {},
+    // triggerHandler() {},
     before(data) {
 
     },

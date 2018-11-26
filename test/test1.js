@@ -20,6 +20,12 @@ a[3] = {
     text: "3.5"
 };
 
+a.on('haha', (e, data) => {
+    debugger
+});
+
+a[0][1].emit('haha');
+
 setTimeout(() => {
     a.sort((a, b) => {
         return b.text - a.text;

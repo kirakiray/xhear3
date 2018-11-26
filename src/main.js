@@ -3,7 +3,14 @@ let XhearElementHandler = {
     get(target, key, receiver) {
         // 判断是否纯数字
         if (/\D/.test(key)) {
-            // 不是纯数字
+            // if (/(parent|style|ele)/.test(key)) {
+            //     // 默认带的key
+            //     // 不是纯数字
+            //     return Reflect.get(target, key, receiver);
+            // } else {
+            //     // 不是默认key
+            //     debugger
+            // }
             return Reflect.get(target, key, receiver);
         } else {
             // 纯数字，返回数组内的结构
@@ -51,17 +58,17 @@ let XhearElement = function (ele) {
 };
 
 // XhearElement prototype
-let XhearElementFn = XhearElement.prototype = {};
+let XhearElementFn = XhearElement.prototype = Object.create(XDataFn);
 setNotEnumer(XhearElementFn, {
-    on() {},
-    one() {},
-    off() {},
-    emit() {},
-    watch() {},
-    unwatch() {},
-    sync() {},
-    unsync() {},
-    entrend() {},
+    // on() {},
+    // one() {},
+    // off() {},
+    // emit() {},
+    // watch() {},
+    // unwatch() {},
+    // sync() {},
+    // unsync() {},
+    // entrend() {},
     que(expr) {
         return $.que(expr, this.ele);
     }
@@ -69,9 +76,14 @@ setNotEnumer(XhearElementFn, {
 
 
 defineProperties(XhearElementFn, {
+    hostkey: {
+        get() {
+            return Array.from(this.ele.parentElement.children).indexOf(this.ele);
+        }
+    },
     parent: {
         get() {
-            return createXHearElement(this.ele.parentNode);
+            return createXHearElement(this.ele.parentElement);
         }
     },
     next: {
