@@ -1,28 +1,22 @@
 // 模拟类jQuery的方法
-assign(XElementPriFn, {
-    show() {
-        this.style.display = "";
-        return this;
-    },
-    hide() {
-        this.style.display = "none";
-        return this;
-    },
+setNotEnumer(XhearElementFn, {
     on() {},
     one() {},
     off() {},
     trigger() {},
     triggerHandler() {},
-    before() {},
+    before(data) {
+
+    },
     after(data) {
         debugger
     },
-    replace() {},
     remove() {},
     empty() {
         this.html = "";
         return this;
     },
+    parents() {},
     siblings(expr) {
 
     },
@@ -33,6 +27,14 @@ assign(XElementPriFn, {
 });
 
 defineProperties(XhearElementFn, {
+    display: {
+        get() {
+            return getComputedStyle(this.ele)['display'];
+        },
+        set(val) {
+            this.ele.style['display'] = val;
+        }
+    },
     text: {
         get() {
             return this.ele.textContent;
@@ -71,28 +73,29 @@ defineProperties(XhearElementFn, {
 
             assign(style, d);
         }
-    }
-});
-
-assign(XhearElementFnGetterOption, {
-    position() {
-        return {
-            top: this.ele.offsetTop,
-            left: this.ele.offsetLeft
-        };
     },
-    offset() {
-        let reobj = {
-            top: 0,
-            left: 0
-        };
-
-        let tar = this.ele;
-        while (tar !== document) {
-            reobj.top += tar.offsetTop;
-            reobj.left += tar.offsetLeft;
-            tar = tar.offsetParent
+    position: {
+        get() {
+            return {
+                top: this.ele.offsetTop,
+                left: this.ele.offsetLeft
+            };
         }
-        return reobj;
+    },
+    offset: {
+        get() {
+            let reobj = {
+                top: 0,
+                left: 0
+            };
+
+            let tar = this.ele;
+            while (tar !== document) {
+                reobj.top += tar.offsetTop;
+                reobj.left += tar.offsetLeft;
+                tar = tar.offsetParent
+            }
+            return reobj;
+        }
     }
 });

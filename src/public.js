@@ -66,3 +66,28 @@ const parseDataToDom = (data) => {
         return ele;
     }
 }
+
+// main
+const createXHearElement = ele => ele && new XhearElement(ele);
+const parseToXHearElement = expr => {
+    if (expr instanceof XhearElement) {
+        return expr;
+    }
+
+    let reobj;
+
+    // expr type
+    let exprType = getType(expr);
+
+    if (expr instanceof Element) {
+        reobj = createXHearElement(expr);
+    } else if (exprType == "string") {
+        reobj = parseStringToDom(expr)[0];
+        reobj = createXHearElement(reobj);
+    } else if (exprType == "object") {
+        reobj = parseDataToDom(expr);
+        reobj = createXHearElement(reobj);
+    }
+
+    return reobj;
+}

@@ -4,7 +4,24 @@ console.log(a);
 let b = $({
     tag: "div",
     class: "aaa bbb",
-    text: "i am b"
+    text: "2.5"
 });
 
-a.unshift(b);
+b.style = {
+    color: "red"
+};
+
+// 在a前面插入b
+// a.unshift(b);
+a.splice(1, 1, b);
+
+a[3] = {
+    tag: "div",
+    text: "3.5"
+};
+
+setTimeout(() => {
+    a.sort((a, b) => {
+        return b.text - a.text;
+    });
+}, 1000);
