@@ -70,6 +70,9 @@ const parseDataToDom = (data) => {
 
 // main
 const createXHearElement = ele => {
+    if (!ele) {
+        return;
+    }
     let xhearEle = ele._XHearEle;
     if (!xhearEle) {
         xhearEle = new XhearElement(ele);
@@ -190,7 +193,7 @@ const conditData = (exprKey, exprValue, exprType, exprEqType, tarData) => {
             }
             break;
         case "hasKey":
-            if (exprKey in tarData) {
+            if (tarData.hasOwnProperty(exprKey)) {
                 reData = 1;
             }
             break;
@@ -916,7 +919,7 @@ setNotEnumer(XDataFn, {
 
                         keysOne = isUndefined(keysOne) ? trend.key : keysOne;
 
-                        if (keysOne in options) {
+                        if (options.hasOwnProperty(keysOne)) {
                             if (isUndefined(trend.keys[0])) {
                                 trend.key = options[keysOne];
                             } else {
@@ -936,7 +939,7 @@ setNotEnumer(XDataFn, {
 
                         keysOne = isUndefined(keysOne) ? trend.key : keysOne;
 
-                        if (keysOne in resOptions) {
+                        if (resOptions.hasOwnProperty(keysOne)) {
                             if (isUndefined(trend.keys[0])) {
                                 trend.key = resOptions[keysOne];
                             } else {
@@ -1135,7 +1138,7 @@ let XDataHandler = {
 
             let isFirst;
             // 判断是否初次设置
-            if (!(key in xdata)) {
+            if (!xdata.hasOwnProperty(key)) {
                 isFirst = 1;
             }
 
@@ -1166,7 +1169,7 @@ let XDataHandler = {
         }
 
         // 都不存在瞎折腾什么
-        if (!(key in xdata)) {
+        if (!xdata.hasOwnProperty(key)) {
             return true;
         }
 
