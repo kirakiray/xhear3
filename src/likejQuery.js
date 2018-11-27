@@ -90,7 +90,7 @@ defineProperties(XhearElementFn, {
             };
 
             let tar = this.ele;
-            while (tar !== document) {
+            while (tar && tar !== document) {
                 reobj.top += tar.offsetTop;
                 reobj.left += tar.offsetLeft;
                 tar = tar.offsetParent

@@ -14,7 +14,8 @@ let XhearElementHandler = {
             return Reflect.get(target, key, receiver);
         } else {
             // 纯数字，返回数组内的结构
-            let ele = target.ele.children[key]
+            // let ele = target.ele.children[key]
+            let ele = receiver.ele.children[key];
             return ele && createXHearElement(ele);
         }
     },
@@ -44,8 +45,12 @@ let XhearElementHandler = {
 // class
 let XhearElement = function (ele) {
     defineProperties(this, {
-        ele: {
-            value: ele
+        // ele: {
+        //     value: ele
+        // },
+        // 事件寄宿对象
+        [EVES]: {
+            value: {}
         },
         tag: {
             // writeable: false,
@@ -54,7 +59,8 @@ let XhearElement = function (ele) {
         }
     });
 
-    return new Proxy(this, XhearElementHandler);
+    // return new Proxy(this, XhearElementHandler);
+
 };
 
 // XhearElement prototype
@@ -93,7 +99,18 @@ defineProperties(XhearElementFn, {
     },
     prev: {
         get() {
-            return this.ele.previousElementSibling && createXHearElement(this.ele.previousElementSibling);
+            let {
+                previousElementSibling
+            } = this.ele;
+            return previousElementSibling && createXHearElement(previousElementSibling);
+        }
+    },
+    next: {
+        get() {
+            let {
+                nextElementSibling
+            } = this.ele;
+            return nextElementSibling && createXHearElement(nextElementSibling);
         }
     },
     index: {
@@ -137,7 +154,8 @@ defineProperties(XhearElementFn, {
 
             // 非xvele就保留class属性
             if (!this.xvele) {
-                obj.class = this.ele.classList.value;
+                let classValue = this.ele.classList.value;
+                classValue && (obj.class = classValue);
             }
 
             this.forEach((e, i) => {
@@ -147,7 +165,8 @@ defineProperties(XhearElementFn, {
                     obj[i] = e;
                 }
             });
-            obj.length = this.length;
+
+            // obj.length = this.length;
             return obj;
         }
     },

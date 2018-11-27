@@ -1,5 +1,8 @@
 ((glo) => {
-    // 获取随机id
+    // common
+
+
+// 获取随机id
 const getRandomId = () => Math.random().toString(32).substr(2);
 let objectToString = Object.prototype.toString;
 const getType = value => objectToString.call(value).toLowerCase().replace(/(\[object )|(])/g, '');
@@ -73,11 +76,19 @@ const createXHearElement = ele => {
     if (!ele) {
         return;
     }
-    let xhearEle = ele._XHearEle;
-    if (!xhearEle) {
-        xhearEle = new XhearElement(ele);
-        ele._XHearEle = xhearEle;
+    let xhearData = ele._xhearData;
+    if (!xhearData) {
+        xhearData = new XhearElement(ele);
+        // xhearData = new Proxy(xhearData, XhearElementHandler);
+        ele._xhearData = xhearData;
     }
+
+    // 防止内存泄露，隔离 xhearData 和 ele
+    let xhearEle = Object.create(xhearData);
+    xhearEle.ele = ele;
+    xhearEle = new Proxy(xhearEle, XhearElementHandler);
+    // let xhearEle = Object.create(xhearData);
+    // xhearEle.ele = ele;
     return xhearEle;
 };
 const parseToXHearElement = expr => {
@@ -1250,7 +1261,8 @@ let XhearElementHandler = {
             return Reflect.get(target, key, receiver);
         } else {
             // 纯数字，返回数组内的结构
-            let ele = target.ele.children[key]
+            // let ele = target.ele.children[key]
+            let ele = receiver.ele.children[key];
             return ele && createXHearElement(ele);
         }
     },
@@ -1280,8 +1292,12 @@ let XhearElementHandler = {
 // class
 let XhearElement = function (ele) {
     defineProperties(this, {
-        ele: {
-            value: ele
+        // ele: {
+        //     value: ele
+        // },
+        // 事件寄宿对象
+        [EVES]: {
+            value: {}
         },
         tag: {
             // writeable: false,
@@ -1290,7 +1306,8 @@ let XhearElement = function (ele) {
         }
     });
 
-    return new Proxy(this, XhearElementHandler);
+    // return new Proxy(this, XhearElementHandler);
+
 };
 
 // XhearElement prototype
@@ -1329,7 +1346,18 @@ defineProperties(XhearElementFn, {
     },
     prev: {
         get() {
-            return this.ele.previousElementSibling && createXHearElement(this.ele.previousElementSibling);
+            let {
+                previousElementSibling
+            } = this.ele;
+            return previousElementSibling && createXHearElement(previousElementSibling);
+        }
+    },
+    next: {
+        get() {
+            let {
+                nextElementSibling
+            } = this.ele;
+            return nextElementSibling && createXHearElement(nextElementSibling);
         }
     },
     index: {
@@ -1373,7 +1401,8 @@ defineProperties(XhearElementFn, {
 
             // 非xvele就保留class属性
             if (!this.xvele) {
-                obj.class = this.ele.classList.value;
+                let classValue = this.ele.classList.value;
+                classValue && (obj.class = classValue);
             }
 
             this.forEach((e, i) => {
@@ -1383,7 +1412,8 @@ defineProperties(XhearElementFn, {
                     obj[i] = e;
                 }
             });
-            obj.length = this.length;
+
+            // obj.length = this.length;
             return obj;
         }
     },
@@ -1611,7 +1641,7 @@ defineProperties(XhearElementFn, {
             };
 
             let tar = this.ele;
-            while (tar !== document) {
+            while (tar && tar !== document) {
                 reobj.top += tar.offsetTop;
                 reobj.left += tar.offsetLeft;
                 tar = tar.offsetParent

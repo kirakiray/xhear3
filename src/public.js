@@ -1,3 +1,6 @@
+// common
+
+
 // 获取随机id
 const getRandomId = () => Math.random().toString(32).substr(2);
 let objectToString = Object.prototype.toString;
@@ -72,11 +75,19 @@ const createXHearElement = ele => {
     if (!ele) {
         return;
     }
-    let xhearEle = ele._XHearEle;
-    if (!xhearEle) {
-        xhearEle = new XhearElement(ele);
-        ele._XHearEle = xhearEle;
+    let xhearData = ele._xhearData;
+    if (!xhearData) {
+        xhearData = new XhearElement(ele);
+        // xhearData = new Proxy(xhearData, XhearElementHandler);
+        ele._xhearData = xhearData;
     }
+
+    // 防止内存泄露，隔离 xhearData 和 ele
+    let xhearEle = Object.create(xhearData);
+    xhearEle.ele = ele;
+    xhearEle = new Proxy(xhearEle, XhearElementHandler);
+    // let xhearEle = Object.create(xhearData);
+    // xhearEle.ele = ele;
     return xhearEle;
 };
 const parseToXHearElement = expr => {

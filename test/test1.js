@@ -24,7 +24,9 @@ a.on('haha', (e, data) => {
     debugger
 });
 
-a[0][1].emit('haha');
+a[0][1].emit('haha', {
+    val: "test data"
+});
 
 setTimeout(() => {
     a.sort((a, b) => {
