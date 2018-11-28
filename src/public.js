@@ -14,6 +14,19 @@ let {
     assign
 } = Object;
 
+// 判断元素是否符合条件
+const meetsEle = (ele, expr) => {
+    if (ele === expr) {
+        return !0;
+    }
+    let fadeParent = document.createElement('div');
+    if (ele === document) {
+        return false;
+    }
+    fadeParent.appendChild(ele.cloneNode(false));
+    return fadeParent.querySelector(expr) ? true : false;
+}
+
 // 设置不可枚举的方法
 const setNotEnumer = (tar, obj) => {
     for (let k in obj) {
@@ -79,7 +92,6 @@ const createXHearElement = ele => {
     let xhearData = ele._xhearData;
     if (!xhearData) {
         xhearData = new XhearElement(ele);
-        // xhearData = new Proxy(xhearData, XhearElementHandler);
         ele._xhearData = xhearData;
     }
 
@@ -95,8 +107,6 @@ const createXHearElement = ele => {
         }
     });
     xhearEle = new Proxy(xhearEle, XhearElementHandler);
-    // let xhearEle = Object.create(xhearData);
-    // xhearEle.ele = ele;
     return xhearEle;
 };
 const parseToXHearElement = expr => {

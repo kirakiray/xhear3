@@ -15,6 +15,19 @@ let {
     assign
 } = Object;
 
+// 判断元素是否符合条件
+const meetsEle = (ele, expr) => {
+    if (ele === expr) {
+        return !0;
+    }
+    let fadeParent = document.createElement('div');
+    if (ele === document) {
+        return false;
+    }
+    fadeParent.appendChild(ele.cloneNode(false));
+    return fadeParent.querySelector(expr) ? true : false;
+}
+
 // 设置不可枚举的方法
 const setNotEnumer = (tar, obj) => {
     for (let k in obj) {
@@ -80,7 +93,6 @@ const createXHearElement = ele => {
     let xhearData = ele._xhearData;
     if (!xhearData) {
         xhearData = new XhearElement(ele);
-        // xhearData = new Proxy(xhearData, XhearElementHandler);
         ele._xhearData = xhearData;
     }
 
@@ -96,8 +108,6 @@ const createXHearElement = ele => {
         }
     });
     xhearEle = new Proxy(xhearEle, XhearElementHandler);
-    // let xhearEle = Object.create(xhearData);
-    // xhearEle.ele = ele;
     return xhearEle;
 };
 const parseToXHearElement = expr => {
@@ -1233,27 +1243,6 @@ let XDataHandler = {
     }
 };
 
-    // 属性切换器
-function TokenList(ele, key) {
-    defineProperties(this, {
-        "_p": {
-            value: ele
-        },
-        "_key": {
-            value: key
-        }
-    });
-}
-let TokenListFn = {};
-TokenList.prototype = TokenListFn;
-defineProperties(TokenListFn, {
-    add() {},
-    remove() {},
-    has() {},
-    toggle() {},
-    value() {}
-});
-
     // handle
 let XhearElementHandler = {
     get(target, key, receiver) {
@@ -1623,25 +1612,59 @@ setNotEnumer(XhearElementFn, {
 
     // 模拟类jQuery的方法
 setNotEnumer(XhearElementFn, {
-    // on() {},
-    // one() {},
-    // off() {},
-    // trigger() {},
-    // triggerHandler() {},
     before(data) {
-
+        xeSplice(this.parent, this.hostkey, 0, data);
+        return this;
     },
     after(data) {
-        debugger
+        xeSplice(this.parent, this.hostkey + 1, 0, data);
+        return this;
     },
-    remove() {},
+    remove() {
+        xeSplice(this.parent, this.hostkey, 1);
+    },
     empty() {
         this.html = "";
         return this;
     },
-    parents() {},
-    siblings(expr) {
+    parents(expr) {
+        let pars = [];
+        let tempTar = this.parent;
 
+        if (!expr) {
+            while (tempTar && tempTar.tag != "html") {
+                pars.push(tempTar);
+                tempTar = tempTar.parent;
+            }
+        } else {
+            while (tempTar && tempTar.tag != "html") {
+                if (meetsEle(tempTar.ele, expr)) {
+                    pars.push(tempTar);
+                }
+                tempTar = tempTar.parent;
+            }
+        }
+
+        return pars;
+    },
+    siblings(expr) {
+        // 获取父层的所有子元素
+        let parChilds = Array.from(this.ele.parentElement.children);
+
+        // 删除自身
+        let tarId = parChilds.indexOf(this.ele);
+        parChilds.splice(tarId, 1);
+
+        // 删除不符合规定的
+        if (expr) {
+            parChilds = parChilds.filter(e => {
+                if (meetsEle(e, expr)) {
+                    return true;
+                }
+            });
+        }
+
+        return parChilds.map(e => createXHearElement(e));
     },
     // like jQuery function find
     que(expr) {

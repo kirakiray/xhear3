@@ -1,24 +1,58 @@
 // 模拟类jQuery的方法
 setNotEnumer(XhearElementFn, {
-    // on() {},
-    // one() {},
-    // off() {},
-    // trigger() {},
-    // triggerHandler() {},
     before(data) {
-
+        xeSplice(this.parent, this.hostkey, 0, data);
+        return this;
     },
     after(data) {
-        debugger
+        xeSplice(this.parent, this.hostkey + 1, 0, data);
+        return this;
     },
-    remove() {},
+    remove() {
+        xeSplice(this.parent, this.hostkey, 1);
+    },
     empty() {
         this.html = "";
         return this;
     },
-    parents() {},
-    siblings(expr) {
+    parents(expr) {
+        let pars = [];
+        let tempTar = this.parent;
 
+        if (!expr) {
+            while (tempTar && tempTar.tag != "html") {
+                pars.push(tempTar);
+                tempTar = tempTar.parent;
+            }
+        } else {
+            while (tempTar && tempTar.tag != "html") {
+                if (meetsEle(tempTar.ele, expr)) {
+                    pars.push(tempTar);
+                }
+                tempTar = tempTar.parent;
+            }
+        }
+
+        return pars;
+    },
+    siblings(expr) {
+        // 获取父层的所有子元素
+        let parChilds = Array.from(this.ele.parentElement.children);
+
+        // 删除自身
+        let tarId = parChilds.indexOf(this.ele);
+        parChilds.splice(tarId, 1);
+
+        // 删除不符合规定的
+        if (expr) {
+            parChilds = parChilds.filter(e => {
+                if (meetsEle(e, expr)) {
+                    return true;
+                }
+            });
+        }
+
+        return parChilds.map(e => createXHearElement(e));
     },
     // like jQuery function find
     que(expr) {

@@ -3,8 +3,6 @@
 
     //<!--xdata-->
 
-    //<!--class-->
-
     //<!--main-->
 
     //<!--arrayMethod-->
