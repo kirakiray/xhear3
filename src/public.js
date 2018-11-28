@@ -1,11 +1,12 @@
-// common
-
-
 // 获取随机id
 const getRandomId = () => Math.random().toString(32).substr(2);
 let objectToString = Object.prototype.toString;
 const getType = value => objectToString.call(value).toLowerCase().replace(/(\[object )|(])/g, '');
 const isUndefined = val => val === undefined;
+
+// common
+const PROTO = '_proto_' + getRandomId();
+const XHEAREVENT = "_xevent_" + getRandomId();
 
 let {
     defineProperty,
@@ -84,7 +85,15 @@ const createXHearElement = ele => {
 
     // 防止内存泄露，隔离 xhearData 和 ele
     let xhearEle = Object.create(xhearData);
-    xhearEle.ele = ele;
+    defineProperties(xhearEle, {
+        [PROTO]: {
+            value: xhearData
+        },
+        ele: {
+            enumerable: true,
+            value: ele
+        }
+    });
     xhearEle = new Proxy(xhearEle, XhearElementHandler);
     // let xhearEle = Object.create(xhearData);
     // xhearEle.ele = ele;

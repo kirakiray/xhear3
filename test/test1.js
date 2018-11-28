@@ -20,8 +20,18 @@ a[3] = {
     text: "3.5"
 };
 
-a.on('haha', (e, data) => {
+// let cfun;
+// a.on('click', cfun = (e, data) => {
+//     debugger
+//     a.off('click', cfun);
+// });
+
+a.one('click', cfun = (e, data) => {
     debugger
+});
+
+a.on('haha', (e, data) => {
+    console.log("haha => ", e, data);
 });
 
 a[0][1].emit('haha', {

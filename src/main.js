@@ -52,6 +52,10 @@ let XhearElement = function (ele) {
         [EVES]: {
             value: {}
         },
+        // 实体事件函数寄存
+        [XHEAREVENT]: {
+            value: {}
+        },
         tag: {
             // writeable: false,
             enumerable: true,
@@ -63,12 +67,71 @@ let XhearElement = function (ele) {
 
 };
 
+// 判断是否要清除注册的事件函数
+const intelClearEvent = (_this, eventName) => {
+    // 查看是否没有注册的事件函数了，没有就清空call
+    let tarEves = _this[EVES][eventName];
+
+    if (tarEves && !tarEves.length) {
+        let tarCall = _this[XHEAREVENT][eventName];
+
+        // 清除注册事件函数
+        _this.ele.removeEventListener(eventName, tarCall);
+        delete _this[XHEAREVENT][eventName];
+    }
+}
+
 // XhearElement prototype
 let XhearElementFn = XhearElement.prototype = Object.create(XDataFn);
 setNotEnumer(XhearElementFn, {
-    // on() {},
-    // one() {},
-    // off() {},
+    on(...args) {
+        let eventName = args[0];
+
+        // 判断原生是否有存在注册的函数
+        let tarCall = this[XHEAREVENT][eventName];
+        if (!tarCall) {
+            let eventCall;
+            // 不存在就注册
+            this.ele.addEventListener(eventName, eventCall = (e) => {
+                // 阻止掉其他所有的函数监听
+                e.stopImmediatePropagation();
+
+                // 事件实例生成
+                let target = createXHearElement(e.target);
+                let eveObj = new XDataEvent(eventName, target);
+
+                let tempTarget = target;
+                while (tempTarget.ele !== this.ele) {
+                    eveObj.keys.unshift(tempTarget.hostkey);
+                    tempTarget = tempTarget.parent;
+                }
+
+                this.emit(eveObj);
+            });
+            this[XHEAREVENT][eventName] = eventCall;
+        }
+
+        return XDataFn.on.apply(this, args);
+    },
+    one(...args) {
+        let eventName = args[0];
+        let reData = XDataFn.one.apply(this, args);
+
+        // 智能清除事件函数
+        intelClearEvent(this, eventName);
+
+        return reData;
+    },
+    off(...args) {
+        let eventName = args[0];
+
+        let reData = XDataFn.off.apply(this, args);
+
+        // 智能清除事件函数
+        intelClearEvent(this, eventName);
+
+        return reData;
+    },
     // emit() {},
     // watch() {},
     // unwatch() {},
