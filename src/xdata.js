@@ -98,7 +98,7 @@ const conditData = (exprKey, exprValue, exprType, exprEqType, tarData) => {
 }
 
 // 查找数据
-const seekData = (data, exprObj) => {
+let seekData = (data, exprObj) => {
     let arr = [];
 
     // 关键数据
@@ -135,7 +135,7 @@ let addModify = (xdata, modifyId) => {
     xdata[MODIFYTIMER] = setTimeout(() => {
         modifyHost.length = 0;
         modifyHost = null;
-    }, 8000);
+    }, 5000);
 }
 
 // main class
@@ -260,7 +260,7 @@ function XData(obj, options = {}) {
         // 设置数组长度
         length,
         // 事件寄宿对象
-        // [EVES]: {},
+        [EVES]: {},
         // watch寄宿对象
         [WATCHHOST]: {},
         // sync 寄宿对象
@@ -346,11 +346,6 @@ let XDataFn = XData.prototype = {};
 
 // 获取事件数组
 const getEvesArr = (tar, eventName) => {
-    if (!tar[EVES]) {
-        defineProperty(tar, EVES, {
-            value: {}
-        });
-    }
     let eves = tar[EVES];
     let redata = eves[eventName] || (eves[eventName] = []);
     return redata;

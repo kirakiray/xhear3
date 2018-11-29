@@ -234,7 +234,7 @@ const conditData = (exprKey, exprValue, exprType, exprEqType, tarData) => {
 }
 
 // 查找数据
-const seekData = (data, exprObj) => {
+let seekData = (data, exprObj) => {
     let arr = [];
 
     // 关键数据
@@ -271,7 +271,7 @@ let addModify = (xdata, modifyId) => {
     xdata[MODIFYTIMER] = setTimeout(() => {
         modifyHost.length = 0;
         modifyHost = null;
-    }, 8000);
+    }, 5000);
 }
 
 // main class
@@ -396,7 +396,7 @@ function XData(obj, options = {}) {
         // 设置数组长度
         length,
         // 事件寄宿对象
-        // [EVES]: {},
+        [EVES]: {},
         // watch寄宿对象
         [WATCHHOST]: {},
         // sync 寄宿对象
@@ -482,11 +482,6 @@ let XDataFn = XData.prototype = {};
 
 // 获取事件数组
 const getEvesArr = (tar, eventName) => {
-    if (!tar[EVES]) {
-        defineProperty(tar, EVES, {
-            value: {}
-        });
-    }
     let eves = tar[EVES];
     let redata = eves[eventName] || (eves[eventName] = []);
     return redata;
@@ -1249,14 +1244,6 @@ let XhearElementHandler = {
     get(target, key, receiver) {
         // 判断是否纯数字
         if (/\D/.test(String(key))) {
-            // if (/(parent|style|ele)/.test(key)) {
-            //     // 默认带的key
-            //     // 不是纯数字
-            //     return Reflect.get(target, key, receiver);
-            // } else {
-            //     // 不是默认key
-            //     debugger
-            // }
             return Reflect.get(target, key, receiver);
         } else {
             // 纯数字，返回数组内的结构
@@ -1268,7 +1255,7 @@ let XhearElementHandler = {
     set(target, key, value, receiver) {
         console.log(`setting ${key}!`);
         if (/\D/.test(key)) {
-            // 不是纯数字
+            // 不是纯数字，设置在proxy对象上
             return Reflect.set(target, key, value, receiver);
         } else {
             // 直接替换元素
@@ -1279,13 +1266,31 @@ let XhearElementHandler = {
             } = tarEle.ele;
             parentElement.insertBefore(value.ele, tarEle.ele);
             parentElement.removeChild(tarEle.ele);
+
+            // update事件冒泡
+            // 事件实例生成
+            let eveObj = new XDataEvent('update', receiver);
+
+            // 添加修正数据
+            eveObj.modify = {
+                // change 改动
+                // set 新增值
+                genre: "change",
+                key,
+                value,
+                oldVal: tarEle
+            };
+
+            // 触发事件
+            receiver.emit(eveObj);
+
             return true;
         }
     },
-    deleteProperty(target, key) {
-        console.log(`delete ${key}`);
-        return Reflect.defineProperty(target, key);
-    }
+    // deleteProperty(target, key) {
+    //     console.log(`delete ${key}`);
+    //     return Reflect.defineProperty(target, key);
+    // }
 };
 
 // class
@@ -1295,9 +1300,9 @@ let XhearElement = function (ele) {
         //     value: ele
         // },
         // 事件寄宿对象
-        [EVES]: {
-            value: {}
-        },
+        // [EVES]: {
+        //     value: {}
+        // },
         // 实体事件函数寄存
         [XHEAREVENT]: {
             value: {}
@@ -1308,6 +1313,19 @@ let XhearElement = function (ele) {
             value: ele.tagName.toLowerCase()
         }
     });
+
+    // 继承 xdata 的数据
+    let opt = {
+        // 事件寄宿对象
+        [EVES]: {},
+        // watch寄宿对象
+        [WATCHHOST]: {},
+        // sync 寄宿对象
+        [SYNCHOST]: [],
+        [MODIFYHOST]: [],
+        [MODIFYTIMER]: ""
+    };
+    setNotEnumer(this, opt);
 
     // return new Proxy(this, XhearElementHandler);
 
@@ -1499,6 +1517,19 @@ defineProperties(XhearElementFn, {
 
 // 通用splice方法
 const xeSplice = (_this, index, howmany, ...items) => {
+    let {
+        _entrendModifyId
+    } = _this;
+
+    if (_entrendModifyId) {
+        // 拿到数据立刻删除
+        delete _this._entrendModifyId;
+    } else {
+        _entrendModifyId = getRandomId();
+
+        addModify(_this, _entrendModifyId);
+    }
+
     let reArr = [];
 
     let {
@@ -1535,12 +1566,24 @@ const xeSplice = (_this, index, howmany, ...items) => {
         });
     }
 
+    // 事件实例生成
+    let eveObj = new XDataEvent('update', this);
+
+    eveObj.modify = {
+        genre: "arrayMethod",
+        methodName: "splice",
+        args: [index, howmany, ...items],
+        modifyId: _entrendModifyId
+    };
+
+    _this.emit(eveObj);
+
     return reArr;
 }
 
 setNotEnumer(XhearElementFn, {
     splice(...args) {
-        let rarr = xeSplice(this, ...args);;
+        let rarr = xeSplice(this, ...args);
         return rarr;
     },
     unshift(...items) {
@@ -1560,7 +1603,33 @@ setNotEnumer(XhearElementFn, {
         return rarr;
     },
     sort(sFunc) {
-        if (getType(sFunc).search('function') > -1) {
+        // 获取改动id
+        let {
+            _entrendModifyId
+        } = this;
+
+        if (_entrendModifyId) {
+            // 拿到数据立刻删除
+            delete this._entrendModifyId;
+        } else {
+            _entrendModifyId = getRandomId();
+            addModify(this, _entrendModifyId);
+        }
+
+        let args;
+        if (sFunc instanceof Array) {
+            args = [sFunc];
+
+            // 先做备份
+            let backupChilds = Array.from(ele.children);
+
+            // 修正顺序
+            sFunc.forEach(eid => {
+                ele.appendChild(backupChilds[eid]);
+            });
+
+            debugger
+        } else {
             let {
                 ele
             } = this;
@@ -1584,9 +1653,20 @@ setNotEnumer(XhearElementFn, {
                 ele.appendChild(e.ele);
             });
 
-        } else if (sFunc instanceof Array) {
-            debugger
+            args = [ids];
         }
+
+        // 事件实例生成
+        let eveObj = new XDataEvent('update', this);
+
+        eveObj.modify = {
+            genre: "arrayMethod",
+            methodName: "sort",
+            args,
+            modifyId: _entrendModifyId
+        };
+
+        this.emit(eveObj);
         return this;
     },
     reverse() {

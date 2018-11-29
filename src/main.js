@@ -3,14 +3,6 @@ let XhearElementHandler = {
     get(target, key, receiver) {
         // 判断是否纯数字
         if (/\D/.test(String(key))) {
-            // if (/(parent|style|ele)/.test(key)) {
-            //     // 默认带的key
-            //     // 不是纯数字
-            //     return Reflect.get(target, key, receiver);
-            // } else {
-            //     // 不是默认key
-            //     debugger
-            // }
             return Reflect.get(target, key, receiver);
         } else {
             // 纯数字，返回数组内的结构
@@ -22,7 +14,7 @@ let XhearElementHandler = {
     set(target, key, value, receiver) {
         console.log(`setting ${key}!`);
         if (/\D/.test(key)) {
-            // 不是纯数字
+            // 不是纯数字，设置在proxy对象上
             return Reflect.set(target, key, value, receiver);
         } else {
             // 直接替换元素
@@ -33,13 +25,31 @@ let XhearElementHandler = {
             } = tarEle.ele;
             parentElement.insertBefore(value.ele, tarEle.ele);
             parentElement.removeChild(tarEle.ele);
+
+            // update事件冒泡
+            // 事件实例生成
+            let eveObj = new XDataEvent('update', receiver);
+
+            // 添加修正数据
+            eveObj.modify = {
+                // change 改动
+                // set 新增值
+                genre: "change",
+                key,
+                value,
+                oldVal: tarEle
+            };
+
+            // 触发事件
+            receiver.emit(eveObj);
+
             return true;
         }
     },
-    deleteProperty(target, key) {
-        console.log(`delete ${key}`);
-        return Reflect.defineProperty(target, key);
-    }
+    // deleteProperty(target, key) {
+    //     console.log(`delete ${key}`);
+    //     return Reflect.defineProperty(target, key);
+    // }
 };
 
 // class
@@ -49,9 +59,9 @@ let XhearElement = function (ele) {
         //     value: ele
         // },
         // 事件寄宿对象
-        [EVES]: {
-            value: {}
-        },
+        // [EVES]: {
+        //     value: {}
+        // },
         // 实体事件函数寄存
         [XHEAREVENT]: {
             value: {}
@@ -62,6 +72,19 @@ let XhearElement = function (ele) {
             value: ele.tagName.toLowerCase()
         }
     });
+
+    // 继承 xdata 的数据
+    let opt = {
+        // 事件寄宿对象
+        [EVES]: {},
+        // watch寄宿对象
+        [WATCHHOST]: {},
+        // sync 寄宿对象
+        [SYNCHOST]: [],
+        [MODIFYHOST]: [],
+        [MODIFYTIMER]: ""
+    };
+    setNotEnumer(this, opt);
 
     // return new Proxy(this, XhearElementHandler);
 

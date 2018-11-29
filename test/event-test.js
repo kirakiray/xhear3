@@ -1,6 +1,6 @@
 (() => {
-    let tester = expect(2, 'event test');
-    
+    let tester = expect(4, 'event test');
+
     let a = $('#a');
 
     a.on('haha', (e, data) => {
@@ -12,4 +12,16 @@
         val: "test data"
     });
 
+    let b = $('#b');
+
+    b.one('update', (e, data) => {
+        tester.ok(JSON.stringify(e.keys) == "[0]", "update keys ok");
+        tester.ok(e.modify.key == 1, "update modify key ok");
+    });
+
+    b[0][1] = {
+        tag: "div",
+        text: "bbb1_2",
+        class: "bbb1_2"
+    };
 })();

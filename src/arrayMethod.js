@@ -12,6 +12,19 @@
 
 // 通用splice方法
 const xeSplice = (_this, index, howmany, ...items) => {
+    let {
+        _entrendModifyId
+    } = _this;
+
+    if (_entrendModifyId) {
+        // 拿到数据立刻删除
+        delete _this._entrendModifyId;
+    } else {
+        _entrendModifyId = getRandomId();
+
+        addModify(_this, _entrendModifyId);
+    }
+
     let reArr = [];
 
     let {
@@ -48,12 +61,24 @@ const xeSplice = (_this, index, howmany, ...items) => {
         });
     }
 
+    // 事件实例生成
+    let eveObj = new XDataEvent('update', this);
+
+    eveObj.modify = {
+        genre: "arrayMethod",
+        methodName: "splice",
+        args: [index, howmany, ...items],
+        modifyId: _entrendModifyId
+    };
+
+    _this.emit(eveObj);
+
     return reArr;
 }
 
 setNotEnumer(XhearElementFn, {
     splice(...args) {
-        let rarr = xeSplice(this, ...args);;
+        let rarr = xeSplice(this, ...args);
         return rarr;
     },
     unshift(...items) {
@@ -73,7 +98,33 @@ setNotEnumer(XhearElementFn, {
         return rarr;
     },
     sort(sFunc) {
-        if (getType(sFunc).search('function') > -1) {
+        // 获取改动id
+        let {
+            _entrendModifyId
+        } = this;
+
+        if (_entrendModifyId) {
+            // 拿到数据立刻删除
+            delete this._entrendModifyId;
+        } else {
+            _entrendModifyId = getRandomId();
+            addModify(this, _entrendModifyId);
+        }
+
+        let args;
+        if (sFunc instanceof Array) {
+            args = [sFunc];
+
+            // 先做备份
+            let backupChilds = Array.from(ele.children);
+
+            // 修正顺序
+            sFunc.forEach(eid => {
+                ele.appendChild(backupChilds[eid]);
+            });
+
+            debugger
+        } else {
             let {
                 ele
             } = this;
@@ -97,9 +148,20 @@ setNotEnumer(XhearElementFn, {
                 ele.appendChild(e.ele);
             });
 
-        } else if (sFunc instanceof Array) {
-            debugger
+            args = [ids];
         }
+
+        // 事件实例生成
+        let eveObj = new XDataEvent('update', this);
+
+        eveObj.modify = {
+            genre: "arrayMethod",
+            methodName: "sort",
+            args,
+            modifyId: _entrendModifyId
+        };
+
+        this.emit(eveObj);
         return this;
     },
     reverse() {

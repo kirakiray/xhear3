@@ -1,5 +1,5 @@
 (() => {
-    let tester = expect(5, 'array test');
+    let tester = expect(8, 'array test');
 
     let a = $('#a');
 
@@ -24,13 +24,19 @@
 
         tester.ok(parseFloat(a.ele.children[3].innerHTML) == 3.5, "replace arr ok");
 
+        a.on('update', e => {
+            tester.ok(e.modify.methodName == "sort", "array sort method update ok");
+        });
+
         a.sort((a, b) => {
             return b.text - a.text;
         });
 
-        tester.ok(parseInt(a[0].text) == 6, "sort ok 1");
-        tester.ok(parseInt(a[1].text) == 5, "sort ok 2");
-    }, 1000);
+        tester.ok(parseInt(a[0].text) == 6, "sort value ok 1");
+        tester.ok(parseInt(a[1].text) == 5, "sort value ok 2");
+        tester.ok(parseFloat(a[3].text) == 3.5, "sort value ok 3");
+        tester.ok(parseFloat(a[5].text) == 2.5, "sort value ok 4");
+    }, 300);
 
 
 })();
