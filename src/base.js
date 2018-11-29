@@ -9,6 +9,8 @@
 
     //<!--likejQuery-->
 
+    //<!--register-->
+
     // 全局用$
     let $ = (expr) => {
         if (expr instanceof XhearElement) {
@@ -31,9 +33,15 @@
         type: getType,
         init: createXHearElement,
         que: (expr, root = document) => Array.from(root.querySelectorAll(expr)).map(e => createXHearElement(e)),
-        xdata: createXData
+        xdata: createXData,
+        register
     });
 
-    //<!--register-->
+    // 初始化控件
+    nextTick(() => {
+        Array.from(document.querySelectorAll('[xv-ele]')).forEach(e => {
+            renderEle(e);
+        });
+    });
 
 })(window);

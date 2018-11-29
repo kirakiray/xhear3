@@ -8,6 +8,10 @@ const isUndefined = val => val === undefined;
 const PROTO = '_proto_' + getRandomId();
 const XHEAREVENT = "_xevent_" + getRandomId();
 
+// database
+// 注册数据
+const regDatabase = new Map();
+
 let {
     defineProperty,
     defineProperties,
@@ -98,9 +102,6 @@ const createXHearElement = ele => {
     // 防止内存泄露，隔离 xhearData 和 ele
     let xhearEle = Object.create(xhearData);
     defineProperties(xhearEle, {
-        [PROTO]: {
-            value: xhearData
-        },
         ele: {
             enumerable: true,
             value: ele

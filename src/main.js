@@ -2,7 +2,7 @@
 let XhearElementHandler = {
     get(target, key, receiver) {
         // 判断是否纯数字
-        if (/\D/.test(key)) {
+        if (/\D/.test(String(key))) {
             // if (/(parent|style|ele)/.test(key)) {
             //     // 默认带的key
             //     // 不是纯数字
@@ -207,7 +207,6 @@ defineProperties(XhearElementFn, {
         get() {
             return JSON.stringify(this.object);
         }
-
     },
     object: {
         get() {
@@ -216,7 +215,7 @@ defineProperties(XhearElementFn, {
             };
 
             // 非xvele就保留class属性
-            if (!this.xvele) {
+            if (!this.xvRender) {
                 let classValue = this.ele.classList.value;
                 classValue && (obj.class = classValue);
             }

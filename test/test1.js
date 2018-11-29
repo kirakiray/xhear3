@@ -1,23 +1,10 @@
 let a = $('#a');
 console.log(a);
 
-let b = $({
-    tag: "div",
-    class: "aaa bbb",
-    text: "2.5"
-});
+let b = $('.aaa.bbb');
 
 b.style = {
     color: "red"
-};
-
-// 在a前面插入b
-// a.unshift(b);
-a.splice(1, 1, b);
-
-a[3] = {
-    tag: "div",
-    text: "3.5"
 };
 
 // let cfun;
@@ -27,19 +14,23 @@ a[3] = {
 // });
 
 a.one('click', cfun = (e, data) => {
-    debugger
+    console.log('click a');
 });
 
-a.on('haha', (e, data) => {
-    console.log("haha => ", e, data);
+$.register({
+    tag: "testtag",
+    temp: `
+    <div style="font-size:12px;color:green;margin-top:30px;">Title testtag</div>
+    <div xv-content></div>
+    `,
+    data: {
+        aa: "I am aa"
+    },
+    proto: {
+        show() {
+            console.log('show running');
+        }
+    }
 });
 
-a[0][1].emit('haha', {
-    val: "test data"
-});
-
-setTimeout(() => {
-    a.sort((a, b) => {
-        return b.text - a.text;
-    });
-}, 1000);
+let c = $('#c');
