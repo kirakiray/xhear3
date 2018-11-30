@@ -86,6 +86,44 @@ const parseDataToDom = (data) => {
         data.class && ele.setAttribute('class', data.class);
         data.text && (ele.textContent = data.text);
 
+        // 判断是否xv-ele
+        let {
+            xvele
+        } = data;
+
+        let xhearEle;
+
+        if (xvele) {
+            ele.setAttribute('xv-ele', "");
+            renderEle(ele);
+            xhearEle = createXHearElement(ele);
+
+            // 数据合并
+            xhearEle[EXKEYS].forEach(k => {
+                let val = data[k];
+                !isUndefined(val) && (xhearEle[k] = val);
+            });
+        }
+
+        // 填充内容
+        let akey = 0;
+        while (akey in data) {
+            let childEle = parseDataToDom(data[akey]);
+
+            if (xvele && xhearEle) {
+                let {
+                    $content
+                } = xhearEle;
+
+                if ($content) {
+                    $content.ele.appendChild(childEle);
+                }
+            } else {
+                ele.appendChild(childEle);
+            }
+            akey++;
+        }
+
         return ele;
     }
 }
@@ -105,7 +143,7 @@ const createXHearElement = ele => {
     let xhearEle = Object.create(xhearData);
     defineProperties(xhearEle, {
         ele: {
-            enumerable: true,
+            enumerable: false,
             value: ele
         }
     });
@@ -1249,39 +1287,38 @@ let XhearElementHandler = {
             return Reflect.get(target, key, receiver);
         } else {
             // 纯数字，返回数组内的结构
-            // let ele = target.ele.children[key]
-            let ele = receiver.ele.children[key];
+            let ele;
+
+            // 判断是否渲染的元素
+            if (target.xvRender) {
+                let {
+                    $content
+                } = target;
+
+                if ($content) {
+                    ele = $content.ele.children[key];
+                } else {
+                    console.warn('hasn\'t content element =>', receiver.ele);
+                }
+            } else {
+                // 普通元素就是children
+                ele = receiver.ele.children[key];
+            }
+
             return ele && createXHearElement(ele);
         }
     },
     set(target, key, value, receiver) {
         console.log(`setting ${key}!`);
+        let oldVal;
         if (/\D/.test(key)) {
             // 判断是否有_exkey上的字段
             if (target[EXKEYS] && target[EXKEYS].includes(key)) {
-                let oldVal = target[key];
+                oldVal = target[key];
 
                 // 设置在原型对象上
                 target.ele._xhearData[key] = value;
 
-                // 触发update冒泡
-                // 事件实例生成
-                let eveObj = new XDataEvent('update', receiver);
-
-                // 添加修正数据
-                eveObj.modify = {
-                    // change 改动
-                    // set 新增值
-                    genre: "change",
-                    key,
-                    value,
-                    oldVal
-                };
-
-                // 触发事件
-                receiver.emit(eveObj);
-
-                return true;
             } else {
                 // 不是纯数字，设置在proxy对象上
                 return Reflect.set(target, key, value, receiver);
@@ -1289,6 +1326,8 @@ let XhearElementHandler = {
         } else {
             // 直接替换元素
             value = parseToXHearElement(value);
+
+            // 获取旧值
             let tarEle = receiver[key];
             let {
                 parentElement
@@ -1296,30 +1335,28 @@ let XhearElementHandler = {
             parentElement.insertBefore(value.ele, tarEle.ele);
             parentElement.removeChild(tarEle.ele);
 
-            // update事件冒泡
-            // 事件实例生成
-            let eveObj = new XDataEvent('update', receiver);
-
-            // 添加修正数据
-            eveObj.modify = {
-                // change 改动
-                // set 新增值
-                genre: "change",
-                key,
-                value,
-                oldVal: tarEle
-            };
-
-            // 触发事件
-            receiver.emit(eveObj);
-
-            return true;
+            oldVal = tarEle;
         }
-    },
-    // deleteProperty(target, key) {
-    //     console.log(`delete ${key}`);
-    //     return Reflect.defineProperty(target, key);
-    // }
+
+        // update事件冒泡
+        // 事件实例生成
+        let eveObj = new XDataEvent('update', receiver);
+
+        // 添加修正数据
+        eveObj.modify = {
+            // change 改动
+            // set 新增值
+            genre: "change",
+            key,
+            value,
+            oldVal
+        };
+
+        // 触发事件
+        receiver.emit(eveObj);
+
+        return true;
+    }
 };
 
 // class
@@ -1372,6 +1409,44 @@ const intelClearEvent = (_this, eventName) => {
         _this.ele.removeEventListener(eventName, tarCall);
         delete _this[XHEAREVENT][eventName];
     }
+}
+
+// 重构seekData函数
+seekData = (data, exprObj) => {
+    let arr = [];
+
+    // 关键数据
+    let exprKey = exprObj.k,
+        exprValue = exprObj.v,
+        exprType = exprObj.type,
+        exprEqType = exprObj.eqType;
+
+    let searchFunc = k => {
+        let tarData = data[k];
+
+        if (isXData(tarData)) {
+            // 判断是否可添加
+            let canAdd = conditData(exprKey, exprValue, exprType, exprEqType, tarData);
+
+            // 允许就添加
+            canAdd && arr.push(tarData);
+
+            // 查找子项
+            let newArr = seekData(tarData, exprObj);
+            arr.push(...newArr);
+        }
+    }
+
+    if (data instanceof XhearElement) {
+        // 准备好key
+        let exkeys = data[EXKEYS] || [];
+        let childKeys = Object.keys(data.ele.children);
+        [...exkeys, ...childKeys].forEach(searchFunc);
+    } else {
+        Object.keys(data).forEach(searchFunc);
+    }
+    searchFunc = null;
+    return arr;
 }
 
 // XhearElement prototype
@@ -1445,12 +1520,18 @@ defineProperties(XhearElementFn, {
     },
     parent: {
         get() {
-            return createXHearElement(this.ele.parentElement);
-        }
-    },
-    next: {
-        get() {
-            return this.ele.nextElementSibling && createXHearElement(this.ele.nextElementSibling);
+            let {
+                parentElement
+            } = this.ele;
+
+            if (!parentElement) {
+                return;
+            }
+
+            if (parentElement.xvContent) {
+                parentElement = parentElement._xhearData.$host.ele;
+            }
+            return createXHearElement(parentElement);
         }
     },
     prev: {
@@ -1487,7 +1568,7 @@ defineProperties(XhearElementFn, {
     // 是否渲染过
     rendered: {
         get() {
-            return this.ele.attributes.hasOwnProperty('xv-render');
+            return !!this.ele.xvRender;
         }
     },
     class: {
@@ -1527,7 +1608,15 @@ defineProperties(XhearElementFn, {
     },
     length: {
         get() {
-            return this.ele.children.length;
+            let {
+                ele
+            } = this;
+
+            if (ele.xvRender) {
+                return ele._xhearData.$content.ele.children.length;
+            } else {
+                return this.ele.children.length;
+            }
         }
     }
 });
@@ -1561,12 +1650,34 @@ const xeSplice = (_this, index, howmany, ...items) => {
 
     let reArr = [];
 
+    // test
+    // if (items.length == 3) {
+    //     debugger
+    // }
+
     let {
         ele
     } = _this;
-    let {
-        children
-    } = ele;
+
+    // 确认是否渲染的元素，抽出content元素
+    let children, contentEle = ele;
+
+    if (ele.xvRender) {
+        let {
+            _xhearData
+        } = ele;
+        if (_xhearData) {
+            let {
+                $content
+            } = _xhearData;
+            if ($content) {
+                contentEle = $content.ele;
+                children = $content.ele.children;
+            }
+        }
+    } else {
+        children = ele.children;
+    }
 
     // 先删除后面数量的元素
     while (howmany > 0) {
@@ -1587,11 +1698,11 @@ const xeSplice = (_this, index, howmany, ...items) => {
     // 添加元素
     if (index >= 0 && tar) {
         items.forEach(e => {
-            ele.insertBefore(parseToXHearElement(e).ele, tar);
+            contentEle.insertBefore(parseToXHearElement(e).ele, tar);
         });
     } else {
         items.forEach(e => {
-            ele.appendChild(parseToXHearElement(e).ele);
+            contentEle.appendChild(parseToXHearElement(e).ele);
         });
     }
 
@@ -1886,7 +1997,7 @@ const renderEle = (ele) => {
     // 设置renderID
     ele.removeAttribute('xv-ele');
     ele.setAttribute('xv-render', renderId);
-    xhearData.xvRender = renderId;
+    ele.xvRender = xhearData.xvRender = renderId;
 
     // 渲染依赖sx-ele，
     // 让ele使用渲染完成的内元素
@@ -1897,6 +2008,7 @@ const renderEle = (ele) => {
 
     // 获取 xv-content
     let contentEle = ele.querySelector(`[xv-content][xv-shadow="${renderId}"]`);
+    contentEle.xvContent = renderId;
     // 初始化一次
     createXHearElement(contentEle);
 

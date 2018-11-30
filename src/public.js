@@ -85,6 +85,44 @@ const parseDataToDom = (data) => {
         data.class && ele.setAttribute('class', data.class);
         data.text && (ele.textContent = data.text);
 
+        // 判断是否xv-ele
+        let {
+            xvele
+        } = data;
+
+        let xhearEle;
+
+        if (xvele) {
+            ele.setAttribute('xv-ele', "");
+            renderEle(ele);
+            xhearEle = createXHearElement(ele);
+
+            // 数据合并
+            xhearEle[EXKEYS].forEach(k => {
+                let val = data[k];
+                !isUndefined(val) && (xhearEle[k] = val);
+            });
+        }
+
+        // 填充内容
+        let akey = 0;
+        while (akey in data) {
+            let childEle = parseDataToDom(data[akey]);
+
+            if (xvele && xhearEle) {
+                let {
+                    $content
+                } = xhearEle;
+
+                if ($content) {
+                    $content.ele.appendChild(childEle);
+                }
+            } else {
+                ele.appendChild(childEle);
+            }
+            akey++;
+        }
+
         return ele;
     }
 }
@@ -104,7 +142,7 @@ const createXHearElement = ele => {
     let xhearEle = Object.create(xhearData);
     defineProperties(xhearEle, {
         ele: {
-            enumerable: true,
+            enumerable: false,
             value: ele
         }
     });

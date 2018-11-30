@@ -29,7 +29,7 @@ const renderEle = (ele) => {
     // 设置renderID
     ele.removeAttribute('xv-ele');
     ele.setAttribute('xv-render', renderId);
-    xhearData.xvRender = renderId;
+    ele.xvRender = xhearData.xvRender = renderId;
 
     // 渲染依赖sx-ele，
     // 让ele使用渲染完成的内元素
@@ -40,6 +40,7 @@ const renderEle = (ele) => {
 
     // 获取 xv-content
     let contentEle = ele.querySelector(`[xv-content][xv-shadow="${renderId}"]`);
+    contentEle.xvContent = renderId;
     // 初始化一次
     createXHearElement(contentEle);
 

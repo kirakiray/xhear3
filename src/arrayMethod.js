@@ -27,12 +27,34 @@ const xeSplice = (_this, index, howmany, ...items) => {
 
     let reArr = [];
 
+    // test
+    // if (items.length == 3) {
+    //     debugger
+    // }
+
     let {
         ele
     } = _this;
-    let {
-        children
-    } = ele;
+
+    // 确认是否渲染的元素，抽出content元素
+    let children, contentEle = ele;
+
+    if (ele.xvRender) {
+        let {
+            _xhearData
+        } = ele;
+        if (_xhearData) {
+            let {
+                $content
+            } = _xhearData;
+            if ($content) {
+                contentEle = $content.ele;
+                children = $content.ele.children;
+            }
+        }
+    } else {
+        children = ele.children;
+    }
 
     // 先删除后面数量的元素
     while (howmany > 0) {
@@ -53,11 +75,11 @@ const xeSplice = (_this, index, howmany, ...items) => {
     // 添加元素
     if (index >= 0 && tar) {
         items.forEach(e => {
-            ele.insertBefore(parseToXHearElement(e).ele, tar);
+            contentEle.insertBefore(parseToXHearElement(e).ele, tar);
         });
     } else {
         items.forEach(e => {
-            ele.appendChild(parseToXHearElement(e).ele);
+            contentEle.appendChild(parseToXHearElement(e).ele);
         });
     }
 
