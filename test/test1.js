@@ -17,20 +17,4 @@ a.one('click', cfun = (e, data) => {
     console.log('click a');
 });
 
-$.register({
-    tag: "testtag",
-    temp: `
-    <div style="font-size:12px;color:green;margin-top:30px;">Title testtag</div>
-    <div xv-content></div>
-    `,
-    data: {
-        aa: "I am aa"
-    },
-    proto: {
-        show() {
-            console.log('show running');
-        }
-    }
-});
-
 let c = $('#c');

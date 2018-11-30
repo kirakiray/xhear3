@@ -14,8 +14,35 @@ let XhearElementHandler = {
     set(target, key, value, receiver) {
         console.log(`setting ${key}!`);
         if (/\D/.test(key)) {
-            // 不是纯数字，设置在proxy对象上
-            return Reflect.set(target, key, value, receiver);
+            // 判断是否有_exkey上的字段
+            if (target[EXKEYS] && target[EXKEYS].includes(key)) {
+                let oldVal = target[key];
+
+                // 设置在原型对象上
+                target.ele._xhearData[key] = value;
+
+                // 触发update冒泡
+                // 事件实例生成
+                let eveObj = new XDataEvent('update', receiver);
+
+                // 添加修正数据
+                eveObj.modify = {
+                    // change 改动
+                    // set 新增值
+                    genre: "change",
+                    key,
+                    value,
+                    oldVal
+                };
+
+                // 触发事件
+                receiver.emit(eveObj);
+
+                return true;
+            } else {
+                // 不是纯数字，设置在proxy对象上
+                return Reflect.set(target, key, value, receiver);
+            }
         } else {
             // 直接替换元素
             value = parseToXHearElement(value);

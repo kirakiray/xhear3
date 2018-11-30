@@ -62,8 +62,41 @@ const renderEle = (ele) => {
         });
     }
 
+    // 添加_exkey
+    let tdbdata = tdb.data;
+    let exkeys = Object.keys(tdbdata);
+    defineProperty(xhearData, EXKEYS, {
+        value: exkeys
+    });
+
     // test 先合并数据
-    assign(xhearData, tdb.data);
+    exkeys.forEach(k => {
+        let val = tdbdata[k];
+
+        if (val instanceof Object) {
+            val = cloneObject(val);
+            // 数据转换
+            val = createXData(val, {
+                parent: xhearEle,
+                hostkey: k
+            });
+        }
+        xhearData[k] = val;
+    });
+    // assign(xhearData, tdb.data);
+    // Object.keys(tdb.data).forEach(key => {
+    //     let val = tdb.data[key];
+    //     defineProperty(xhearData, key, {
+    //         enumerable: true,
+    //         // writable: true,
+    //         get() {
+    //             return val;
+    //         },
+    //         set(d) {
+    //             val = d;
+    //         }
+    //     });
+    // });
 }
 
 const register = (options) => {

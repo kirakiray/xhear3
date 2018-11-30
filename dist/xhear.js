@@ -8,6 +8,7 @@ const isUndefined = val => val === undefined;
 // common
 const PROTO = '_proto_' + getRandomId();
 const XHEAREVENT = "_xevent_" + getRandomId();
+const EXKEYS = "_exkeys_" + getRandomId();
 
 // database
 // 注册数据
@@ -771,101 +772,94 @@ setNotEnumer(XDataFn, {
             expr = "_";
         }
 
-        let rootWatchHost = this[WATCHHOST]["$"];
+        // 获取相应队列数据
+        let tarExprObj = this[WATCHHOST][expr] || (this[WATCHHOST][expr] = {
+            // 是否已经有nextTick
+            isNextTick: 0,
+            // 事件函数存放数组
+            arr: [],
+            // 空expr使用的数据
+            modifys: [],
+            // 注册的update事件函数
+            // updateFunc
+        });
 
-        if (!rootWatchHost) {
-            rootWatchHost = this[WATCHHOST]["$"] = {
-                timer: 0,
-                modifys: []
-            };
+        // 判断是否注册了update事件函数
+        if (!tarExprObj.updateFunc) {
+            this.on('update', tarExprObj.updateFunc = (e) => {
+                // 如果是 _ 添加modify
+                if (expr == "_") {
+                    tarExprObj.modifys.push(e.trend);
+                }
 
-            // update事件绑定的函数
-            let updateFunc;
+                // 判断是否进入nextTick
+                if (tarExprObj.isNextTick) {
+                    return;
+                }
 
-            // 注册update事件
-            this.on('update', updateFunc = e => {
-                // 添加进trend队列
-                let {
-                    trend
-                } = e;
-                rootWatchHost.modifys.push(trend);
+                // 锁上
+                tarExprObj.isNextTick = 1;
 
-                // 重置计时器
-                clearTimeout(rootWatchHost.timer);
-                rootWatchHost.timer = setTimeout(() => {
-                    // 备份modifys并清零
-                    let cloneModifys = Array.from(rootWatchHost.modifys);
-                    rootWatchHost.modifys.length = 0;
+                nextTick(() => {
+                    switch (expr) {
+                        case "_":
+                            tarExprObj.arr.forEach(callback => {
+                                callback({
+                                    type: "watch",
+                                    modifys: Array.from(tarExprObj.modifys)
+                                });
+                            });
+                            break;
+                        default:
+                            // 带有expr的
+                            let sData = this.seek(expr);
+                            let {
+                                oldVals
+                            } = tarExprObj;
 
-                    Object.keys(this[WATCHHOST]).forEach(expr => {
-                        let tarObj = this[WATCHHOST][expr];
+                            // 判断是否相等
+                            let isEq = 1;
+                            if (sData.length != oldVals.length) {
+                                isEq = 0;
+                            }
+                            isEq && sData.some((e, i) => {
+                                if (oldVals[i] != e) {
+                                    isEq = 0;
+                                    return true;
+                                }
+                            });
 
-                        switch (expr) {
-                            case "$":
-                                // 不用任何操作
-                                break;
-                            case "_":
-                                // 无expr
-                                tarObj.arr.forEach(callback => {
+                            // 不相等就触发callback
+                            if (!isEq) {
+                                tarExprObj.arr.forEach(callback => {
                                     callback({
                                         type: "watch",
-                                        modifys: cloneModifys
+                                        expr,
+                                        old: oldVals,
+                                        val: sData
                                     });
                                 });
-                                break;
-                            default:
-                                // 带有expr的
-                                let seekData = this.seek(expr);
-                                let {
-                                    oldVals
-                                } = tarObj;
+                                tarExprObj.oldVals = sData;
+                            }
 
-                                // 判断是否相等
-                                let isEq = 1;
-                                if (seekData.length != oldVals.length) {
-                                    isEq = 0;
-                                }
-                                isEq && seekData.some((e, i) => {
-                                    if (oldVals[i] != e) {
-                                        isEq = 0;
-                                        return true;
-                                    }
-                                });
+                    }
 
-                                // 不相等就触发callback
-                                if (!isEq) {
-                                    tarObj.arr.forEach(callback => {
-                                        callback({
-                                            type: "watch",
-                                            expr,
-                                            old: oldVals,
-                                            val: seekData
-                                        });
-                                    });
-                                    oldVals = seekData;
-                                }
-                                break;
-                        }
-                    });
-                }, 0);
+                    // 开放nextTick
+                    tarExprObj.isNextTick = 0;
+                });
             });
         }
 
-        // 添加进队列
-        let tarExprObj = this[WATCHHOST][expr] || (this[WATCHHOST][expr] = {
-            arr: []
-        });
-
-        // 添加进队列
+        // 添加callback
         tarExprObj.arr.push(callback);
 
         // 判断是否expr
         if (expr != "_") {
-            let seekData = this.seek(expr);
+            let sData = this.seek(expr);
             callback({
-                val: seekData
+                val: sData
             });
-            tarExprObj.oldVals = seekData;
+            tarExprObj.oldVals = sData;
         }
 
         return this;
@@ -884,6 +878,13 @@ setNotEnumer(XDataFn, {
             let tarId = tarExprObj.arr.indexOf(callback);
             if (tarId > -1) {
                 tarExprObj.arr.splice(tarId, 1);
+            }
+
+            // 判断arr是否清空，是的话回收update事件绑定
+            if (!tarExprObj.arr.length) {
+                this.off('update', tarExprObj.updateFunc);
+                delete tarExprObj.updateFunc;
+                delete this[WATCHHOST][expr];
             }
         }
 
@@ -1128,11 +1129,12 @@ let XDataHandler = {
             } else {
                 if (value.status == "root") {
                     value.status = 'binding';
-                    value.parent = receiver;
-                    value.hostkey = key;
                 } else {
-                    debugger
+                    // 从原来的地方拿走，先从原处删除在安上
+                    value.remove();
                 }
+                value.parent = receiver;
+                value.hostkey = key;
             }
         } else {
             // 数据转换
@@ -1255,8 +1257,35 @@ let XhearElementHandler = {
     set(target, key, value, receiver) {
         console.log(`setting ${key}!`);
         if (/\D/.test(key)) {
-            // 不是纯数字，设置在proxy对象上
-            return Reflect.set(target, key, value, receiver);
+            // 判断是否有_exkey上的字段
+            if (target[EXKEYS] && target[EXKEYS].includes(key)) {
+                let oldVal = target[key];
+
+                // 设置在原型对象上
+                target.ele._xhearData[key] = value;
+
+                // 触发update冒泡
+                // 事件实例生成
+                let eveObj = new XDataEvent('update', receiver);
+
+                // 添加修正数据
+                eveObj.modify = {
+                    // change 改动
+                    // set 新增值
+                    genre: "change",
+                    key,
+                    value,
+                    oldVal
+                };
+
+                // 触发事件
+                receiver.emit(eveObj);
+
+                return true;
+            } else {
+                // 不是纯数字，设置在proxy对象上
+                return Reflect.set(target, key, value, receiver);
+            }
         } else {
             // 直接替换元素
             value = parseToXHearElement(value);
@@ -1890,8 +1919,41 @@ const renderEle = (ele) => {
         });
     }
 
+    // 添加_exkey
+    let tdbdata = tdb.data;
+    let exkeys = Object.keys(tdbdata);
+    defineProperty(xhearData, EXKEYS, {
+        value: exkeys
+    });
+
     // test 先合并数据
-    assign(xhearData, tdb.data);
+    exkeys.forEach(k => {
+        let val = tdbdata[k];
+
+        if (val instanceof Object) {
+            val = cloneObject(val);
+            // 数据转换
+            val = createXData(val, {
+                parent: xhearEle,
+                hostkey: k
+            });
+        }
+        xhearData[k] = val;
+    });
+    // assign(xhearData, tdb.data);
+    // Object.keys(tdb.data).forEach(key => {
+    //     let val = tdb.data[key];
+    //     defineProperty(xhearData, key, {
+    //         enumerable: true,
+    //         // writable: true,
+    //         get() {
+    //             return val;
+    //         },
+    //         set(d) {
+    //             val = d;
+    //         }
+    //     });
+    // });
 }
 
 const register = (options) => {

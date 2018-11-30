@@ -7,6 +7,7 @@ const isUndefined = val => val === undefined;
 // common
 const PROTO = '_proto_' + getRandomId();
 const XHEAREVENT = "_xevent_" + getRandomId();
+const EXKEYS = "_exkeys_" + getRandomId();
 
 // database
 // 注册数据
