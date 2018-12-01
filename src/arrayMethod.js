@@ -4,7 +4,7 @@
     if (oldFunc) {
         setNotEnumer(XhearElementFn, {
             [methodName](...args) {
-                return oldFunc.apply(Array.from(this.ele.children).map(e => createXHearElement(e)), args);
+                return oldFunc.apply(Array.from(getContentEle(this.ele).children).map(e => createXHearElement(e)), args);
             }
         });
     }
@@ -27,34 +27,15 @@ const xeSplice = (_this, index, howmany, ...items) => {
 
     let reArr = [];
 
-    // test
-    // if (items.length == 3) {
-    //     debugger
-    // }
-
     let {
         ele
     } = _this;
 
     // 确认是否渲染的元素，抽出content元素
-    let children, contentEle = ele;
-
-    if (ele.xvRender) {
-        let {
-            _xhearData
-        } = ele;
-        if (_xhearData) {
-            let {
-                $content
-            } = _xhearData;
-            if ($content) {
-                contentEle = $content.ele;
-                children = $content.ele.children;
-            }
-        }
-    } else {
-        children = ele.children;
-    }
+    let contentEle = getContentEle(ele);
+    let {
+        children
+    } = contentEle;
 
     // 先删除后面数量的元素
     while (howmany > 0) {
@@ -133,26 +114,22 @@ setNotEnumer(XhearElementFn, {
             addModify(this, _entrendModifyId);
         }
 
+        let contentEle = getContentEle(this.ele);
+
         let args;
         if (sFunc instanceof Array) {
             args = [sFunc];
 
             // 先做备份
-            let backupChilds = Array.from(ele.children);
+            let backupChilds = Array.from(contentEle.children);
 
             // 修正顺序
             sFunc.forEach(eid => {
-                ele.appendChild(backupChilds[eid]);
+                contentEle.appendChild(backupChilds[eid]);
             });
-
-            debugger
         } else {
-            let {
-                ele
-            } = this;
-
             // 新生成数组
-            let arr = Array.from(ele.children).map(e => createXHearElement(e));
+            let arr = Array.from(contentEle.children).map(e => createXHearElement(e));
             let backupArr = Array.from(arr);
 
             // 执行排序函数
@@ -167,7 +144,7 @@ setNotEnumer(XhearElementFn, {
 
             // 修正新顺序
             arr.forEach(e => {
-                ele.appendChild(e.ele);
+                contentEle.appendChild(e.ele);
             });
 
             args = [ids];
@@ -187,12 +164,10 @@ setNotEnumer(XhearElementFn, {
         return this;
     },
     reverse() {
-        let {
-            ele
-        } = this;
-        let childs = Array.from(ele.children).reverse();
+        let contentEle = getContentEle(this.ele);
+        let childs = Array.from(contentEle.children).reverse();
         childs.forEach(e => {
-            ele.appendChild(e);
+            contentEle.appendChild(e);
         });
         return this;
     },
@@ -200,7 +175,7 @@ setNotEnumer(XhearElementFn, {
         if (d instanceof XhearElement) {
             d = d.ele;
         }
-        return Array.from(this.ele.children).indexOf(d);
+        return Array.from(getContentEle(this.ele).children).indexOf(d);
     },
     includes(d) {
         return this.indexOf(d) > -1;

@@ -4,34 +4,8 @@ const getRandomId = () => Math.random().toString(32).substr(2);
 let objectToString = Object.prototype.toString;
 const getType = value => objectToString.call(value).toLowerCase().replace(/(\[object )|(])/g, '');
 const isUndefined = val => val === undefined;
-
-// common
-const PROTO = '_proto_' + getRandomId();
-const XHEAREVENT = "_xevent_" + getRandomId();
-const EXKEYS = "_exkeys_" + getRandomId();
-
-// database
-// 注册数据
-const regDatabase = new Map();
-
-let {
-    defineProperty,
-    defineProperties,
-    assign
-} = Object;
-
-// 判断元素是否符合条件
-const meetsEle = (ele, expr) => {
-    if (ele === expr) {
-        return !0;
-    }
-    let fadeParent = document.createElement('div');
-    if (ele === document) {
-        return false;
-    }
-    fadeParent.appendChild(ele.cloneNode(false));
-    return fadeParent.querySelector(expr) ? true : false;
-}
+// 克隆object
+const cloneObject = obj => JSON.parse(JSON.stringify(obj));
 
 // 设置不可枚举的方法
 const setNotEnumer = (tar, obj) => {
@@ -43,9 +17,6 @@ const setNotEnumer = (tar, obj) => {
         });
     }
 }
-
-// 克隆object
-const cloneObject = obj => JSON.parse(JSON.stringify(obj));
 
 //改良异步方法
 const nextTick = (() => {
@@ -65,6 +36,58 @@ const nextTick = (() => {
         nextTickArr.push(fun);
     };
 })();
+
+// common
+const PROTO = '_proto_' + getRandomId();
+const XHEAREVENT = "_xevent_" + getRandomId();
+const EXKEYS = "_exkeys_" + getRandomId();
+
+// database
+// 注册数据
+const regDatabase = new Map();
+
+let {
+    defineProperty,
+    defineProperties,
+    assign
+} = Object;
+
+// 获取 content 容器
+const getContentEle = (tarEle) => {
+    let contentEle = tarEle;
+
+    // 判断是否xvRender
+    if (tarEle.xvRender) {
+        let {
+            _xhearData
+        } = contentEle;
+
+        if (_xhearData) {
+            let {
+                $content
+            } = _xhearData;
+
+            if ($content) {
+                contentEle = $content.ele;
+            }
+        }
+    }
+
+    return contentEle;
+}
+
+// 判断元素是否符合条件
+const meetsEle = (ele, expr) => {
+    if (ele === expr) {
+        return !0;
+    }
+    let fadeParent = document.createElement('div');
+    if (ele === document) {
+        return false;
+    }
+    fadeParent.appendChild(ele.cloneNode(false));
+    return fadeParent.querySelector(expr) ? true : false;
+}
 
 // 转换元素
 const parseStringToDom = (str) => {
@@ -1286,25 +1309,7 @@ let XhearElementHandler = {
         if (/\D/.test(String(key))) {
             return Reflect.get(target, key, receiver);
         } else {
-            // 纯数字，返回数组内的结构
-            let ele;
-
-            // 判断是否渲染的元素
-            if (target.xvRender) {
-                let {
-                    $content
-                } = target;
-
-                if ($content) {
-                    ele = $content.ele.children[key];
-                } else {
-                    console.warn('hasn\'t content element =>', receiver.ele);
-                }
-            } else {
-                // 普通元素就是children
-                ele = receiver.ele.children[key];
-            }
-
+            let ele = getContentEle(receiver.ele).children[key];
             return ele && createXHearElement(ele);
         }
     },
@@ -1440,7 +1445,7 @@ seekData = (data, exprObj) => {
     if (data instanceof XhearElement) {
         // 准备好key
         let exkeys = data[EXKEYS] || [];
-        let childKeys = Object.keys(data.ele.children);
+        let childKeys = Object.keys(getContentEle(data.ele).children);
         [...exkeys, ...childKeys].forEach(searchFunc);
     } else {
         Object.keys(data).forEach(searchFunc);
@@ -1550,11 +1555,6 @@ defineProperties(XhearElementFn, {
             return nextElementSibling && createXHearElement(nextElementSibling);
         }
     },
-    index: {
-        get() {
-            return this.parent.findIndex(e => e.ele == this.ele);
-        }
-    },
     // 是否注册的Xele
     xvele: {
         get() {
@@ -1592,6 +1592,12 @@ defineProperties(XhearElementFn, {
             if (!this.xvRender) {
                 let classValue = this.ele.classList.value;
                 classValue && (obj.class = classValue);
+            } else {
+                // 获取自定义数据
+                let exkeys = this[EXKEYS];
+                exkeys && exkeys.forEach(k => {
+                    obj[k] = this[k];
+                });
             }
 
             this.forEach((e, i) => {
@@ -1608,15 +1614,8 @@ defineProperties(XhearElementFn, {
     },
     length: {
         get() {
-            let {
-                ele
-            } = this;
-
-            if (ele.xvRender) {
-                return ele._xhearData.$content.ele.children.length;
-            } else {
-                return this.ele.children.length;
-            }
+            let contentEle = getContentEle(this.ele);
+            return contentEle.children.length;
         }
     }
 });
@@ -1627,7 +1626,7 @@ defineProperties(XhearElementFn, {
     if (oldFunc) {
         setNotEnumer(XhearElementFn, {
             [methodName](...args) {
-                return oldFunc.apply(Array.from(this.ele.children).map(e => createXHearElement(e)), args);
+                return oldFunc.apply(Array.from(getContentEle(this.ele).children).map(e => createXHearElement(e)), args);
             }
         });
     }
@@ -1650,34 +1649,15 @@ const xeSplice = (_this, index, howmany, ...items) => {
 
     let reArr = [];
 
-    // test
-    // if (items.length == 3) {
-    //     debugger
-    // }
-
     let {
         ele
     } = _this;
 
     // 确认是否渲染的元素，抽出content元素
-    let children, contentEle = ele;
-
-    if (ele.xvRender) {
-        let {
-            _xhearData
-        } = ele;
-        if (_xhearData) {
-            let {
-                $content
-            } = _xhearData;
-            if ($content) {
-                contentEle = $content.ele;
-                children = $content.ele.children;
-            }
-        }
-    } else {
-        children = ele.children;
-    }
+    let contentEle = getContentEle(ele);
+    let {
+        children
+    } = contentEle;
 
     // 先删除后面数量的元素
     while (howmany > 0) {
@@ -1756,26 +1736,22 @@ setNotEnumer(XhearElementFn, {
             addModify(this, _entrendModifyId);
         }
 
+        let contentEle = getContentEle(this.ele);
+
         let args;
         if (sFunc instanceof Array) {
             args = [sFunc];
 
             // 先做备份
-            let backupChilds = Array.from(ele.children);
+            let backupChilds = Array.from(contentEle.children);
 
             // 修正顺序
             sFunc.forEach(eid => {
-                ele.appendChild(backupChilds[eid]);
+                contentEle.appendChild(backupChilds[eid]);
             });
-
-            debugger
         } else {
-            let {
-                ele
-            } = this;
-
             // 新生成数组
-            let arr = Array.from(ele.children).map(e => createXHearElement(e));
+            let arr = Array.from(contentEle.children).map(e => createXHearElement(e));
             let backupArr = Array.from(arr);
 
             // 执行排序函数
@@ -1790,7 +1766,7 @@ setNotEnumer(XhearElementFn, {
 
             // 修正新顺序
             arr.forEach(e => {
-                ele.appendChild(e.ele);
+                contentEle.appendChild(e.ele);
             });
 
             args = [ids];
@@ -1810,12 +1786,10 @@ setNotEnumer(XhearElementFn, {
         return this;
     },
     reverse() {
-        let {
-            ele
-        } = this;
-        let childs = Array.from(ele.children).reverse();
+        let contentEle = getContentEle(this.ele);
+        let childs = Array.from(contentEle.children).reverse();
         childs.forEach(e => {
-            ele.appendChild(e);
+            contentEle.appendChild(e);
         });
         return this;
     },
@@ -1823,7 +1797,7 @@ setNotEnumer(XhearElementFn, {
         if (d instanceof XhearElement) {
             d = d.ele;
         }
-        return Array.from(this.ele.children).indexOf(d);
+        return Array.from(getContentEle(this.ele).children).indexOf(d);
     },
     includes(d) {
         return this.indexOf(d) > -1;
@@ -2094,9 +2068,25 @@ const register = (options) => {
     };
     assign(defaults, options);
 
-    // 去除无用的代码（注释代码）
-    defaults.temp = defaults.temp.replace(/<!--.+?-->/g, "");
+    // 复制数据
+    defaults.attrs = defaults.attrs.slice();
+    defaults.props = defaults.props.slice();
+    defaults.data = cloneObject(defaults.data);
+    defaults.watch = cloneObject(defaults.watch);
 
+    if (defaults.temp) {
+        // 判断temp有内容的话，就必须带上 xv-content
+        let tempDiv = document.createElement('div');
+        tempDiv.innerHTML = defaults.temp;
+
+        let xvcontent = tempDiv.querySelector('[xv-content]');
+        if (!xvcontent) {
+            throw defaults.tag + " need container!";
+        }
+
+        // 去除无用的代码（注释代码）
+        defaults.temp = defaults.temp.replace(/<!--.+?-->/g, "");
+    }
     // 设置映射tag数据
     regDatabase.set(defaults.tag, defaults);
 }

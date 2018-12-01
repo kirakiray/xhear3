@@ -5,25 +5,7 @@ let XhearElementHandler = {
         if (/\D/.test(String(key))) {
             return Reflect.get(target, key, receiver);
         } else {
-            // 纯数字，返回数组内的结构
-            let ele;
-
-            // 判断是否渲染的元素
-            if (target.xvRender) {
-                let {
-                    $content
-                } = target;
-
-                if ($content) {
-                    ele = $content.ele.children[key];
-                } else {
-                    console.warn('hasn\'t content element =>', receiver.ele);
-                }
-            } else {
-                // 普通元素就是children
-                ele = receiver.ele.children[key];
-            }
-
+            let ele = getContentEle(receiver.ele).children[key];
             return ele && createXHearElement(ele);
         }
     },
@@ -159,7 +141,7 @@ seekData = (data, exprObj) => {
     if (data instanceof XhearElement) {
         // 准备好key
         let exkeys = data[EXKEYS] || [];
-        let childKeys = Object.keys(data.ele.children);
+        let childKeys = Object.keys(getContentEle(data.ele).children);
         [...exkeys, ...childKeys].forEach(searchFunc);
     } else {
         Object.keys(data).forEach(searchFunc);
@@ -269,11 +251,6 @@ defineProperties(XhearElementFn, {
             return nextElementSibling && createXHearElement(nextElementSibling);
         }
     },
-    index: {
-        get() {
-            return this.parent.findIndex(e => e.ele == this.ele);
-        }
-    },
     // 是否注册的Xele
     xvele: {
         get() {
@@ -311,6 +288,12 @@ defineProperties(XhearElementFn, {
             if (!this.xvRender) {
                 let classValue = this.ele.classList.value;
                 classValue && (obj.class = classValue);
+            } else {
+                // 获取自定义数据
+                let exkeys = this[EXKEYS];
+                exkeys && exkeys.forEach(k => {
+                    obj[k] = this[k];
+                });
             }
 
             this.forEach((e, i) => {
@@ -327,15 +310,8 @@ defineProperties(XhearElementFn, {
     },
     length: {
         get() {
-            let {
-                ele
-            } = this;
-
-            if (ele.xvRender) {
-                return ele._xhearData.$content.ele.children.length;
-            } else {
-                return this.ele.children.length;
-            }
+            let contentEle = getContentEle(this.ele);
+            return contentEle.children.length;
         }
     }
 });

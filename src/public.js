@@ -3,34 +3,8 @@ const getRandomId = () => Math.random().toString(32).substr(2);
 let objectToString = Object.prototype.toString;
 const getType = value => objectToString.call(value).toLowerCase().replace(/(\[object )|(])/g, '');
 const isUndefined = val => val === undefined;
-
-// common
-const PROTO = '_proto_' + getRandomId();
-const XHEAREVENT = "_xevent_" + getRandomId();
-const EXKEYS = "_exkeys_" + getRandomId();
-
-// database
-// 注册数据
-const regDatabase = new Map();
-
-let {
-    defineProperty,
-    defineProperties,
-    assign
-} = Object;
-
-// 判断元素是否符合条件
-const meetsEle = (ele, expr) => {
-    if (ele === expr) {
-        return !0;
-    }
-    let fadeParent = document.createElement('div');
-    if (ele === document) {
-        return false;
-    }
-    fadeParent.appendChild(ele.cloneNode(false));
-    return fadeParent.querySelector(expr) ? true : false;
-}
+// 克隆object
+const cloneObject = obj => JSON.parse(JSON.stringify(obj));
 
 // 设置不可枚举的方法
 const setNotEnumer = (tar, obj) => {
@@ -42,9 +16,6 @@ const setNotEnumer = (tar, obj) => {
         });
     }
 }
-
-// 克隆object
-const cloneObject = obj => JSON.parse(JSON.stringify(obj));
 
 //改良异步方法
 const nextTick = (() => {
@@ -64,6 +35,58 @@ const nextTick = (() => {
         nextTickArr.push(fun);
     };
 })();
+
+// common
+const PROTO = '_proto_' + getRandomId();
+const XHEAREVENT = "_xevent_" + getRandomId();
+const EXKEYS = "_exkeys_" + getRandomId();
+
+// database
+// 注册数据
+const regDatabase = new Map();
+
+let {
+    defineProperty,
+    defineProperties,
+    assign
+} = Object;
+
+// 获取 content 容器
+const getContentEle = (tarEle) => {
+    let contentEle = tarEle;
+
+    // 判断是否xvRender
+    if (tarEle.xvRender) {
+        let {
+            _xhearData
+        } = contentEle;
+
+        if (_xhearData) {
+            let {
+                $content
+            } = _xhearData;
+
+            if ($content) {
+                contentEle = $content.ele;
+            }
+        }
+    }
+
+    return contentEle;
+}
+
+// 判断元素是否符合条件
+const meetsEle = (ele, expr) => {
+    if (ele === expr) {
+        return !0;
+    }
+    let fadeParent = document.createElement('div');
+    if (ele === document) {
+        return false;
+    }
+    fadeParent.appendChild(ele.cloneNode(false));
+    return fadeParent.querySelector(expr) ? true : false;
+}
 
 // 转换元素
 const parseStringToDom = (str) => {

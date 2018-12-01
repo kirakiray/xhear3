@@ -1,5 +1,4 @@
 let a = $('#a');
-console.log(a);
 
 let b = $('.aaa.bbb');
 

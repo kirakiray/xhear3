@@ -126,9 +126,25 @@ const register = (options) => {
     };
     assign(defaults, options);
 
-    // 去除无用的代码（注释代码）
-    defaults.temp = defaults.temp.replace(/<!--.+?-->/g, "");
+    // 复制数据
+    defaults.attrs = defaults.attrs.slice();
+    defaults.props = defaults.props.slice();
+    defaults.data = cloneObject(defaults.data);
+    defaults.watch = cloneObject(defaults.watch);
 
+    if (defaults.temp) {
+        // 判断temp有内容的话，就必须带上 xv-content
+        let tempDiv = document.createElement('div');
+        tempDiv.innerHTML = defaults.temp;
+
+        let xvcontent = tempDiv.querySelector('[xv-content]');
+        if (!xvcontent) {
+            throw defaults.tag + " need container!";
+        }
+
+        // 去除无用的代码（注释代码）
+        defaults.temp = defaults.temp.replace(/<!--.+?-->/g, "");
+    }
     // 设置映射tag数据
     regDatabase.set(defaults.tag, defaults);
 }
