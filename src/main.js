@@ -201,7 +201,11 @@ setNotEnumer(XhearElementFn, {
 
         return reData;
     },
-    // emit() {},
+    emit(...args) {
+        let reData = XDataFn.emit.apply(this, args);
+
+        return reData;
+    },
     // watch() {},
     // unwatch() {},
     // sync() {},

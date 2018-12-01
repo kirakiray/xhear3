@@ -4,6 +4,7 @@
     $.register({
         tag: "t2",
         temp: `
+        {{selected}}
         <div xv-content style="font-size:12px;"></div>
         `,
         attrs: ['selected'],

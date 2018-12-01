@@ -1505,7 +1505,11 @@ setNotEnumer(XhearElementFn, {
 
         return reData;
     },
-    // emit() {},
+    emit(...args) {
+        let reData = XDataFn.emit.apply(this, args);
+
+        return reData;
+    },
     // watch() {},
     // unwatch() {},
     // sync() {},
@@ -1973,12 +1977,29 @@ const renderEle = (ele) => {
     ele.setAttribute('xv-render', renderId);
     ele.xvRender = xhearData.xvRender = renderId;
 
+    // 全部设置 shadow id
+    Array.from(ele.querySelectorAll("*")).forEach(ele => ele.setAttribute('xv-shadow', renderId));
+
     // 渲染依赖sx-ele，
     // 让ele使用渲染完成的内元素
     Array.from(ele.querySelectorAll(`[xv-ele][xv-shadow="${renderId}"]`)).forEach(ele => renderEle(e));
 
-    // 全部设置 shadow id
-    Array.from(ele.querySelectorAll("*")).forEach(ele => ele.setAttribute('xv-shadow', renderId));
+    // 转换 xv-span 元素
+    Array.from(ele.querySelectorAll(`xv-span[xv-shadow="${renderId}"]`)).forEach(e => {
+        debugger
+
+        // 替换xv-span
+        var textnode = document.createTextNode("");
+        e.parentNode.insertBefore(textnode, e);
+        e.parentNode.removeChild(e);
+
+        // 文本数据绑定
+        var svkey = e.getAttribute('svkey');
+
+        // xhearObj.watch(svkey, d => {
+        //     textnode.textContent = d;
+        // });
+    });
 
     // 获取 xv-content
     let contentEle = ele.querySelector(`[xv-content][xv-shadow="${renderId}"]`);
@@ -2026,6 +2047,7 @@ const renderEle = (ele) => {
         }
         xhearData[k] = val;
     });
+
     // assign(xhearData, tdb.data);
     // Object.keys(tdb.data).forEach(key => {
     //     let val = tdb.data[key];
@@ -2075,9 +2097,13 @@ const register = (options) => {
     defaults.watch = cloneObject(defaults.watch);
 
     if (defaults.temp) {
+        let {
+            temp
+        } = defaults;
+
         // 判断temp有内容的话，就必须带上 xv-content
         let tempDiv = document.createElement('div');
-        tempDiv.innerHTML = defaults.temp;
+        tempDiv.innerHTML = temp;
 
         let xvcontent = tempDiv.querySelector('[xv-content]');
         if (!xvcontent) {
@@ -2085,8 +2111,20 @@ const register = (options) => {
         }
 
         // 去除无用的代码（注释代码）
-        defaults.temp = defaults.temp.replace(/<!--.+?-->/g, "");
+        temp = temp.replace(/<!--.+?-->/g, "");
+
+        //准换自定义字符串数据
+        var textDataArr = temp.match(/{{.+?}}/g);
+        textDataArr && textDataArr.forEach((e) => {
+            var key = /{{(.+?)}}/.exec(e);
+            if (key) {
+                temp = temp.replace(e, `<xv-span svkey="${key[1].trim()}"></xv-span>`);
+            }
+        });
+
+        defaults.temp = temp;
     }
+
     // 设置映射tag数据
     regDatabase.set(defaults.tag, defaults);
 }
