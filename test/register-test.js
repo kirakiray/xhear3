@@ -12,8 +12,9 @@
         tag: "testtag",
         temp: `
         <div style="font-size:12px;color:green;margin-top:30px;">Title testtag -------  itext:{{itext}}</div>
-        <div xv-content></div>
+        <!-- <div xv-content></div> -->
         <div xv-tar="cbox"></div>
+        <testinner xv-ele xv-content></testinner>
         <input type="text" xv-module="itext" style="background-color:transparent;color:#ddd;" />
         `,
         data: {

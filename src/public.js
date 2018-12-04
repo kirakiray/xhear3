@@ -58,7 +58,7 @@ const getContentEle = (tarEle) => {
     let contentEle = tarEle;
 
     // 判断是否xvRender
-    if (tarEle.xvRender) {
+    while (contentEle.xvRender) {
         let {
             _xhearData
         } = contentEle;

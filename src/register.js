@@ -31,11 +31,12 @@ const renderEle = (ele) => {
 
     // 渲染依赖sx-ele，
     // 让ele使用渲染完成的内元素
-    Array.from(ele.querySelectorAll(`[xv-ele][xv-shadow="${renderId}"]`)).forEach(ele => renderEle(e));
+    Array.from(ele.querySelectorAll(`[xv-ele][xv-shadow="${renderId}"]`)).forEach(ele => renderEle(ele));
 
     // 获取 xv-content
     let contentEle = ele.querySelector(`[xv-content][xv-shadow="${renderId}"]`);
     contentEle.xvContent = renderId;
+
     // 初始化一次
     createXHearElement(contentEle);
 
@@ -52,6 +53,13 @@ const renderEle = (ele) => {
                 return createXHearElement(ele);
             }
         });
+
+        // 重新修正contentEle
+        // contentEle = getContentEle(ele);
+        while (contentEle.xvRender) {
+            let content = contentEle._xhearData.$content;
+            content && (contentEle = content.ele);
+        }
 
         // 将原来的东西塞回去
         childs.forEach(ele => {
