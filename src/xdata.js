@@ -227,6 +227,11 @@ defineProperties(XDataEvent.prototype, {
     }
 });
 
+function WatchData(data) {
+    this.type = "watch";
+    assign(this, data);
+}
+
 function XData(obj, options = {}) {
     // 生成代理对象
     let proxyThis = new Proxy(this, XDataHandler);
@@ -635,6 +640,16 @@ setNotEnumer(XDataFn, {
             expr = "_";
         }
 
+        let watchType;
+
+        if (expr == "_") {
+            watchType = "watchOri";
+        } else if (/\[.+\]/.test(expr)) {
+            watchType = "seekOri";
+        } else {
+            watchType = "watchKey";
+        }
+
         // 获取相应队列数据
         let tarExprObj = this[WATCHHOST][expr] || (this[WATCHHOST][expr] = {
             // 是否已经有nextTick
@@ -649,10 +664,24 @@ setNotEnumer(XDataFn, {
 
         // 判断是否注册了update事件函数
         if (!tarExprObj.updateFunc) {
-            this.on('update', tarExprObj.updateFunc = (e) => {
+            this.on('update', tarExprObj.updateFunc = e => {
                 // 如果是 _ 添加modify
-                if (expr == "_") {
-                    tarExprObj.modifys.push(e.trend);
+                switch (watchType) {
+                    case "watchOri":
+                        tarExprObj.modifys.push(e.trend);
+                        break;
+                    case "watchKey":
+                        let keyOne = e.keys[0];
+                        isUndefined(keyOne) && (keyOne = e.modify.key);
+
+                        if (keyOne != expr) {
+                            return
+                        }
+
+                        if (!isUndefined(keyOne) && keyOne == expr) {
+                            tarExprObj.modifys.push(e.trend);
+                        }
+                        break;
                 }
 
                 // 判断是否进入nextTick
@@ -664,16 +693,26 @@ setNotEnumer(XDataFn, {
                 tarExprObj.isNextTick = 1;
 
                 nextTick(() => {
-                    switch (expr) {
-                        case "_":
+                    switch (watchType) {
+                        case "watchOri":
+                            // 监听整个数据
                             tarExprObj.arr.forEach(callback => {
-                                callback({
-                                    type: "watch",
+                                callback.call(this, new WatchData({
                                     modifys: Array.from(tarExprObj.modifys)
-                                });
+                                }));
                             });
                             break;
-                        default:
+                        case "watchKey":
+                            tarExprObj.arr.forEach(callback => {
+                                callback.call(this, new WatchData({
+                                    expr,
+                                    val: this[expr],
+                                    modifys: Array.from(tarExprObj.modifys)
+                                }));
+                            });
+                            break;
+                        case "seekOri":
+                            // 监听动态数据
                             // 带有expr的
                             let sData = this.seek(expr);
                             let {
@@ -695,16 +734,15 @@ setNotEnumer(XDataFn, {
                             // 不相等就触发callback
                             if (!isEq) {
                                 tarExprObj.arr.forEach(callback => {
-                                    callback({
-                                        type: "watch",
+                                    callback.call(this, new WatchData({
                                         expr,
                                         old: oldVals,
                                         val: sData
-                                    });
+                                    }));
                                 });
                                 tarExprObj.oldVals = sData;
                             }
-
+                            break;
                     }
 
                     // 开放nextTick
@@ -717,7 +755,7 @@ setNotEnumer(XDataFn, {
         tarExprObj.arr.push(callback);
 
         // 判断是否expr
-        if (expr != "_") {
+        if (watchType == "seekOri") {
             let sData = this.seek(expr);
             callback({
                 val: sData

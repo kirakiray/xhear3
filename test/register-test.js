@@ -1,14 +1,17 @@
 (() => {
-    let tester = expect(5, 'register test');
+    let tester = expect(10, 'register test');
 
     $.register({
         tag: "testtag",
         temp: `
-        <div style="font-size:12px;color:green;margin-top:30px;">Title testtag</div>
+        <div style="font-size:12px;color:green;margin-top:30px;">Title testtag -------  itext:{{itext}}</div>
         <div xv-content></div>
+        <div xv-tar="cbox"></div>
+        <input type="text" xv-module="itext" style="background-color:transparent;color:#ddd;" />
         `,
         data: {
             aa: "I am aa",
+            itext: "haha",
             sobj: {
                 val: "I am sdata"
             }
@@ -17,6 +20,17 @@
             show() {
                 console.log('show running');
             }
+        },
+        watch: {
+            itext(e) {
+                tester.ok(this.ele == c.ele, "tag ok 2");
+            }
+        },
+        inited() {
+            tester.ok(this.ele == c.ele, "tag ok 1");
+        },
+        attached() {
+            tester.ok(this.ele.getRootNode() == document, 'attacehd ok');
         }
     });
 
@@ -39,5 +53,21 @@
         });
 
         c.sobj.val = "change sdata";
+
+        // 直接设置元素
+        c.$cbox[0] = {
+            tag: "div",
+            text: "haha"
+        }
+
+        tester.ok(c.$cbox[0].ele.getAttribute('xv-shadow') == c.ele.getAttribute('xv-render'), "shadow set ok 1");
+
+        // 同步push添加
+        c.$cbox.push({
+            tag: "div",
+            text: "haha2"
+        });
+
+        tester.ok(c.$cbox[1].ele.getAttribute('xv-shadow') == c.ele.getAttribute('xv-render'), "shadow set ok 2");
     }, 100);
 })();

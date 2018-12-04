@@ -4,13 +4,18 @@
     $.register({
         tag: "t2",
         temp: `
-        {{selected}}
+        <div style="color:red;font-size:10px;">selected:{{selected}}</div>
         <div xv-content style="font-size:12px;"></div>
         `,
         attrs: ['selected'],
         data: {
             selected: 0
-        }
+        },
+        // watch: {
+        //     selected(d) {
+        //         debugger
+        //     }
+        // }
     });
 
     let d = $('#d');

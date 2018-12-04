@@ -71,18 +71,18 @@ defineProperties(XhearElementFn, {
     },
     text: {
         get() {
-            return this.ele.textContent;
+            return getContentEle(this.ele).textContent;
         },
         set(d) {
-            this.ele.textContent = d;
+            getContentEle(this.ele).textContent = d;
         }
     },
     html: {
         get() {
-            return this.ele.innerHTML;
+            return getContentEle(this.ele).innerHTML;
         },
         set(d) {
-            this.ele.innerHTML = d;
+            getContentEle(this.ele).innerHTML = d;
         }
     },
     style: {

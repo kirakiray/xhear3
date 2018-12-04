@@ -53,19 +53,25 @@ const xeSplice = (_this, index, howmany, ...items) => {
     // 定位目标子元素
     let tar = children[index];
 
+    let shadowId = contentEle.getAttribute('xv-shadow');
+
     // 添加元素
     if (index >= 0 && tar) {
         items.forEach(e => {
-            contentEle.insertBefore(parseToXHearElement(e).ele, tar);
+            let nEle = parseToXHearElement(e).ele;
+            shadowId && (nEle.setAttribute('xv-shadow', shadowId));
+            contentEle.insertBefore(nEle, tar);
         });
     } else {
         items.forEach(e => {
-            contentEle.appendChild(parseToXHearElement(e).ele);
+            let nEle = parseToXHearElement(e).ele;
+            shadowId && (nEle.setAttribute('xv-shadow', shadowId));
+            contentEle.appendChild(nEle);
         });
     }
 
     // 事件实例生成
-    let eveObj = new XDataEvent('update', this);
+    let eveObj = new XDataEvent('update', _this);
 
     eveObj.modify = {
         genre: "arrayMethod",

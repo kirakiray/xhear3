@@ -10,7 +10,6 @@ let XhearElementHandler = {
         }
     },
     set(target, key, value, receiver) {
-        console.log(`setting ${key}!`);
         let oldVal;
         if (/\D/.test(key)) {
             // 判断是否有_exkey上的字段
@@ -27,14 +26,30 @@ let XhearElementHandler = {
         } else {
             // 直接替换元素
             value = parseToXHearElement(value);
+            let {
+                ele
+            } = receiver;
+
+            let xvShadowVal = ele.getAttribute('xv-shadow');
+            if (xvShadowVal) {
+                // 存在shadow的情况，添加的新元素也要shadow属性
+                value.ele.setAttribute('xv-shadow', xvShadowVal);
+            }
 
             // 获取旧值
             let tarEle = receiver[key];
-            let {
-                parentElement
-            } = tarEle.ele;
-            parentElement.insertBefore(value.ele, tarEle.ele);
-            parentElement.removeChild(tarEle.ele);
+            if (tarEle) {
+                // 替换相应元素
+                let {
+                    parentElement
+                } = tarEle.ele;
+                parentElement.insertBefore(value.ele, tarEle.ele);
+                parentElement.removeChild(tarEle.ele);
+            } else {
+                // 在后面添加新元素
+                let contentEle = getContentEle(ele);
+                contentEle.appendChild(value.ele);
+            }
 
             oldVal = tarEle;
         }
@@ -202,7 +217,11 @@ setNotEnumer(XhearElementFn, {
         return reData;
     },
     emit(...args) {
-        let reData = XDataFn.emit.apply(this, args);
+        let tar = this;
+
+        // 判断是否 shadow元素，shadow元素到根节点就不要冒泡
+
+        let reData = XDataFn.emit.apply(tar, args);
 
         return reData;
     },
