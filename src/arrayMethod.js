@@ -53,7 +53,7 @@ const xeSplice = (_this, index, howmany, ...items) => {
     // 定位目标子元素
     let tar = children[index];
 
-    let shadowId = contentEle.getAttribute('xv-shadow');
+    let shadowId = ele.getAttribute('xv-shadow');
 
     // 添加元素
     if (index >= 0 && tar) {
@@ -72,6 +72,8 @@ const xeSplice = (_this, index, howmany, ...items) => {
 
     // 事件实例生成
     let eveObj = new XDataEvent('update', _this);
+
+    shadowId && (eveObj.shadow = shadowId);
 
     eveObj.modify = {
         genre: "arrayMethod",

@@ -2,6 +2,13 @@
     let tester = expect(10, 'register test');
 
     $.register({
+        tag: "testinner",
+        temp: `
+            <div xv-content class="testinner"></div>
+        `
+    });
+
+    $.register({
         tag: "testtag",
         temp: `
         <div style="font-size:12px;color:green;margin-top:30px;">Title testtag -------  itext:{{itext}}</div>
@@ -54,6 +61,12 @@
 
         c.sobj.val = "change sdata";
 
+        // 判断是否有冒泡
+        let eFun;
+        c.on('update', eFun = e => {
+            throw "shadow element can't update this function";
+        });
+
         // 直接设置元素
         c.$cbox[0] = {
             tag: "div",
@@ -69,5 +82,7 @@
         });
 
         tester.ok(c.$cbox[1].ele.getAttribute('xv-shadow') == c.ele.getAttribute('xv-render'), "shadow set ok 2");
+
+        c.off('update', eFun);
     }, 100);
 })();

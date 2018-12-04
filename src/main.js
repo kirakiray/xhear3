@@ -11,6 +11,7 @@ let XhearElementHandler = {
     },
     set(target, key, value, receiver) {
         let oldVal;
+        let xvShadowVal;
         if (/\D/.test(key)) {
             // 判断是否有_exkey上的字段
             if (target[EXKEYS] && target[EXKEYS].includes(key)) {
@@ -30,7 +31,7 @@ let XhearElementHandler = {
                 ele
             } = receiver;
 
-            let xvShadowVal = ele.getAttribute('xv-shadow');
+            xvShadowVal = ele.getAttribute('xv-shadow');
             if (xvShadowVal) {
                 // 存在shadow的情况，添加的新元素也要shadow属性
                 value.ele.setAttribute('xv-shadow', xvShadowVal);
@@ -57,6 +58,9 @@ let XhearElementHandler = {
         // update事件冒泡
         // 事件实例生成
         let eveObj = new XDataEvent('update', receiver);
+
+        // 设置 shadowId 在 event Object 上
+        (xvShadowVal) && (eveObj.shadow = xvShadowVal);
 
         // 添加修正数据
         eveObj.modify = {
@@ -108,9 +112,6 @@ let XhearElement = function (ele) {
         [MODIFYTIMER]: ""
     };
     setNotEnumer(this, opt);
-
-    // return new Proxy(this, XhearElementHandler);
-
 };
 
 // 判断是否要清除注册的事件函数
@@ -219,7 +220,12 @@ setNotEnumer(XhearElementFn, {
     emit(...args) {
         let tar = this;
 
+        let eveObj = args[0];
+
         // 判断是否 shadow元素，shadow元素到根节点就不要冒泡
+        if (eveObj instanceof XDataEvent && eveObj.shadow && eveObj.shadow == this.xvRender) {
+            return;
+        }
 
         let reData = XDataFn.emit.apply(tar, args);
 
