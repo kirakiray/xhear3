@@ -43,6 +43,7 @@ const XHEAREVENT = "_xevent_" + getRandomId();
 const EXKEYS = "_exkeys_" + getRandomId();
 const ATTACHED = "_attached_" + getRandomId();
 const DETACHED = "_detached_" + getRandomId();
+const XHEARDATA = "_xheardata_" + getRandomId();
 
 // database
 // 注册数据
@@ -60,14 +61,12 @@ const getContentEle = (tarEle) => {
 
     // 判断是否xvRender
     while (contentEle.xvRender) {
-        let {
-            _xhearData
-        } = contentEle;
+        let xhearData = contentEle[XHEARDATA];
 
-        if (_xhearData) {
+        if (xhearData) {
             let {
                 $content
-            } = _xhearData;
+            } = xhearData;
 
             if ($content) {
                 contentEle = $content.ele;
@@ -76,6 +75,23 @@ const getContentEle = (tarEle) => {
     }
 
     return contentEle;
+}
+
+// 获取父容器
+const getParentEle = (tarEle) => {
+    let {
+        parentElement
+    } = tarEle;
+
+    if (!parentElement) {
+        return;
+    }
+
+    while (parentElement.xvContent) {
+        parentElement = parentElement[XHEARDATA].$host.ele;
+    }
+
+    return parentElement;
 }
 
 // 判断元素是否符合条件
@@ -158,10 +174,10 @@ const createXHearElement = ele => {
     if (!ele) {
         return;
     }
-    let xhearData = ele._xhearData;
+    let xhearData = ele[XHEARDATA];
     if (!xhearData) {
         xhearData = new XhearElement(ele);
-        ele._xhearData = xhearData;
+        ele[XHEARDATA] = xhearData;
     }
 
     // 防止内存泄露，隔离 xhearData 和 ele
@@ -326,7 +342,7 @@ let seekData = (data, exprObj) => {
 }
 
 // modifyId清理设置
-let addModify = (xdata, modifyId) => {
+let readyClearModifyId = (xdata, modifyId) => {
     let modifyHost = xdata[MODIFYHOST];
     modifyHost.push(modifyId);
 
@@ -336,6 +352,24 @@ let addModify = (xdata, modifyId) => {
         modifyHost.length = 0;
         modifyHost = null;
     }, 5000);
+}
+
+// 获取或制作modifyId
+let getModifyId = (_this) => {
+    let {
+        _entrendModifyId
+    } = _this;
+
+    if (_entrendModifyId) {
+        // 拿到数据立刻删除
+        delete _this._entrendModifyId;
+    } else {
+        _entrendModifyId = getRandomId();
+
+        readyClearModifyId(_this, _entrendModifyId);
+    }
+
+    return _entrendModifyId;
 }
 
 // main class
@@ -386,7 +420,7 @@ defineProperties(XDataEvent.prototype, {
 
             let reobj = {
                 genre: modify.genre,
-                keys: this.keys
+                keys: this.keys.slice()
             };
 
             defineProperty(reobj, "oldVal", {
@@ -395,7 +429,7 @@ defineProperties(XDataEvent.prototype, {
 
             switch (modify.genre) {
                 case "arrayMethod":
-                    let {
+                    var {
                         methodName,
                         args,
                         modifyId
@@ -408,8 +442,9 @@ defineProperties(XDataEvent.prototype, {
                     });
                     break;
                 default:
-                    let {
-                        value
+                    var {
+                        value,
+                        modifyId
                     } = modify;
 
                     if (isXData(value)) {
@@ -418,6 +453,7 @@ defineProperties(XDataEvent.prototype, {
                     assign(reobj, {
                         key: modify.key,
                         value,
+                        modifyId
                     });
                     break;
             }
@@ -513,18 +549,7 @@ let XDataFn = XData.prototype = {};
                 // 设置不可执行setHandler
                 this[RUNARRMETHOD] = 1;
 
-                let {
-                    _entrendModifyId
-                } = this;
-
-                if (_entrendModifyId) {
-                    // 拿到数据立刻删除
-                    delete this._entrendModifyId;
-                } else {
-                    _entrendModifyId = getRandomId();
-
-                    addModify(this, _entrendModifyId);
-                }
+                let mid = getModifyId(this);
 
                 let redata = arrayFnFunc.apply(this, args);
 
@@ -535,7 +560,7 @@ let XDataFn = XData.prototype = {};
                     genre: "arrayMethod",
                     methodName,
                     args,
-                    modifyId: _entrendModifyId
+                    modifyId: mid
                 };
 
                 this.emit(eveObj);
@@ -565,18 +590,7 @@ setNotEnumer(XDataFn, {
         // 设置不可执行setHandler
         this[RUNARRMETHOD] = 1;
 
-        let {
-            _entrendModifyId
-        } = this;
-
-        if (_entrendModifyId) {
-            // 拿到数据立刻删除
-            delete this._entrendModifyId;
-        } else {
-            _entrendModifyId = getRandomId();
-
-            addModify(this, _entrendModifyId);
-        }
+        let mid = getModifyId(this);
 
         // 传送的后期参数
         let args;
@@ -612,7 +626,7 @@ setNotEnumer(XDataFn, {
             genre: "arrayMethod",
             methodName: "sort",
             args,
-            modifyId: _entrendModifyId
+            modifyId: mid
         };
 
         this.emit(eveObj);
@@ -805,22 +819,28 @@ setNotEnumer(XDataFn, {
         // 目标数据
         let target = this;
 
+        let {
+            modifyId
+        } = options;
+
         // 获取target
         options.keys.forEach(k => {
             target = target[k];
         });
 
+        // 判断是否运行过
+        if (modifyId) {
+            if (this[MODIFYHOST].includes(modifyId)) {
+                return this;
+            } else {
+                readyClearModifyId(this, modifyId);
+                // 临时记录数据
+                target._entrendModifyId = modifyId;
+            }
+        }
+
         switch (options.genre) {
             case "arrayMethod":
-                // 判断是否运行过
-                if (this[MODIFYHOST].includes(options.modifyId)) {
-                    return this;
-                } else {
-                    addModify(this, options.modifyId);
-                }
-
-                // 临时记录数据
-                target._entrendModifyId = options.modifyId;
                 target[options.methodName](...options.args);
                 break;
             case "delete":
@@ -829,6 +849,11 @@ setNotEnumer(XDataFn, {
             default:
                 target[options.key] = options.value;
                 break;
+        }
+
+        if (modifyId) {
+            // 删除临时记录数据
+            delete target._entrendModifyId;
         }
 
         return this;
@@ -1262,6 +1287,8 @@ let XDataHandler = {
                 }
             }
 
+            let mid = getModifyId(receiver);
+
             // 事件实例生成
             let eveObj = new XDataEvent('update', receiver);
 
@@ -1278,7 +1305,8 @@ let XDataHandler = {
                 genre: isFirst ? "set" : "change",
                 key,
                 value,
-                oldVal
+                oldVal,
+                modifyId: mid
             };
 
             reData = Reflect.set(xdata, key, newValue, receiver)
@@ -1362,8 +1390,7 @@ let XhearElementHandler = {
                 oldVal = target[key];
 
                 // 设置在原型对象上
-                target.ele._xhearData[key] = value;
-
+                target.ele[XHEARDATA][key] = value;
             } else {
                 // 不是纯数字，设置在proxy对象上
                 return Reflect.set(target, key, value, receiver);
@@ -1399,12 +1426,14 @@ let XhearElementHandler = {
             oldVal = tarEle;
         }
 
+        let mid = getModifyId(receiver);
+
         // update事件冒泡
         // 事件实例生成
         let eveObj = new XDataEvent('update', receiver);
 
         // 设置 shadowId 在 event Object 上
-        (xvShadowVal) && (eveObj.shadow = xvShadowVal);
+        xvShadowVal && (eveObj.shadow = xvShadowVal);
 
         // 添加修正数据
         eveObj.modify = {
@@ -1413,7 +1442,8 @@ let XhearElementHandler = {
             genre: "change",
             key,
             value,
-            oldVal
+            oldVal,
+            modifyId: mid
         };
 
         // 触发事件
@@ -1575,18 +1605,14 @@ setNotEnumer(XhearElementFn, {
 
         return reData;
     },
-    // watch() {},
-    // unwatch() {},
-    // sync() {},
-    // unsync() {},
-    // entrend() {},
     que(expr) {
         return $.que(expr, this.ele);
     }
 });
 
-
-defineProperties(XhearElementFn, {
+// 关键keys
+let importantKeys;
+defineProperties(XhearElementFn, importantKeys = {
     hostkey: {
         get() {
             return Array.from(this.ele.parentElement.children).indexOf(this.ele);
@@ -1594,16 +1620,9 @@ defineProperties(XhearElementFn, {
     },
     parent: {
         get() {
-            let {
-                parentElement
-            } = this.ele;
-
+            let parentElement = getParentEle(this.ele);
             if (!parentElement) {
                 return;
-            }
-
-            if (parentElement.xvContent) {
-                parentElement = parentElement._xhearData.$host.ele;
             }
             return createXHearElement(parentElement);
         }
@@ -1634,17 +1653,10 @@ defineProperties(XhearElementFn, {
             return attributes.hasOwnProperty('xv-ele') || attributes.hasOwnProperty('xv-render');
         }
     },
-    // 是否渲染过
-    rendered: {
-        get() {
-            return !!this.ele.xvRender;
-        }
-    },
     class: {
         get() {
             return this.ele.classList;
         }
-
     },
     string: {
         get() {
@@ -1688,6 +1700,7 @@ defineProperties(XhearElementFn, {
         }
     }
 });
+importantKeys = Object.keys(importantKeys);
 
     // 可运行的方法
 ['concat', 'every', 'filter', 'find', 'findIndex', 'forEach', 'map', 'slice', 'some'].forEach(methodName => {
@@ -1713,7 +1726,7 @@ const xeSplice = (_this, index, howmany, ...items) => {
     } else {
         _entrendModifyId = getRandomId();
 
-        addModify(_this, _entrendModifyId);
+        readyClearModifyId(_this, _entrendModifyId);
     }
 
     let reArr = [];
@@ -1810,7 +1823,7 @@ setNotEnumer(XhearElementFn, {
             delete this._entrendModifyId;
         } else {
             _entrendModifyId = getRandomId();
-            addModify(this, _entrendModifyId);
+            readyClearModifyId(this, _entrendModifyId);
         }
 
         let contentEle = getContentEle(this.ele);
@@ -1884,14 +1897,26 @@ setNotEnumer(XhearElementFn, {
     // 模拟类jQuery的方法
 setNotEnumer(XhearElementFn, {
     before(data) {
+        if (/\D/.test(this.hostkey)) {
+            console.error(`can't use before in this data =>`, this, data);
+            throw "";
+        }
         xeSplice(this.parent, this.hostkey, 0, data);
         return this;
     },
     after(data) {
+        if (/\D/.test(this.hostkey)) {
+            console.error(`can't use after in this data =>`, this, data);
+            throw "";
+        }
         xeSplice(this.parent, this.hostkey + 1, 0, data);
         return this;
     },
     remove() {
+        if (/\D/.test(this.hostkey)) {
+            console.error(`can't delete this key => ${this.hostkey}`, this, data);
+            throw "";
+        }
         xeSplice(this.parent, this.hostkey, 1);
     },
     empty() {
@@ -2040,7 +2065,7 @@ const renderEle = (ele) => {
 
     // 初始化元素
     let xhearEle = createXHearElement(ele);
-    let xhearData = ele._xhearData;
+    let xhearData = ele[XHEARDATA];
 
     // 合并 proto 的函数
     tdb.proto && assign(xhearData, tdb.proto);
@@ -2067,7 +2092,7 @@ const renderEle = (ele) => {
             }
         });
 
-        defineProperty(contentEle._xhearData, "$host", {
+        defineProperty(contentEle[XHEARDATA], "$host", {
             get() {
                 return createXHearElement(ele);
             }
@@ -2076,7 +2101,7 @@ const renderEle = (ele) => {
         // 重新修正contentEle
         // contentEle = getContentEle(ele);
         while (contentEle.xvRender) {
-            let content = contentEle._xhearData.$content;
+            let content = contentEle[XHEARDATA].$content;
             content && (contentEle = content.ele);
         }
 
@@ -2254,6 +2279,15 @@ const register = (options) => {
     defaults.props = defaults.props.slice();
     defaults.data = cloneObject(defaults.data);
     defaults.watch = assign({}, defaults.watch);
+
+    // 确定没有关键key
+    let allKeys = new Set([...defaults.attrs, ...defaults.props, ...Object.keys(defaults.data)]);
+    importantKeys.forEach(k => {
+        if (allKeys.has(k)) {
+            console.error(`Register illegal key => ${k}`, options);
+            throw "";
+        }
+    });
 
     if (defaults.temp) {
         let {

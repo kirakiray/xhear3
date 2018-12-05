@@ -21,7 +21,7 @@ const renderEle = (ele) => {
 
     // 初始化元素
     let xhearEle = createXHearElement(ele);
-    let xhearData = ele._xhearData;
+    let xhearData = ele[XHEARDATA];
 
     // 合并 proto 的函数
     tdb.proto && assign(xhearData, tdb.proto);
@@ -48,7 +48,7 @@ const renderEle = (ele) => {
             }
         });
 
-        defineProperty(contentEle._xhearData, "$host", {
+        defineProperty(contentEle[XHEARDATA], "$host", {
             get() {
                 return createXHearElement(ele);
             }
@@ -57,7 +57,7 @@ const renderEle = (ele) => {
         // 重新修正contentEle
         // contentEle = getContentEle(ele);
         while (contentEle.xvRender) {
-            let content = contentEle._xhearData.$content;
+            let content = contentEle[XHEARDATA].$content;
             content && (contentEle = content.ele);
         }
 
@@ -235,6 +235,15 @@ const register = (options) => {
     defaults.props = defaults.props.slice();
     defaults.data = cloneObject(defaults.data);
     defaults.watch = assign({}, defaults.watch);
+
+    // 确定没有关键key
+    let allKeys = new Set([...defaults.attrs, ...defaults.props, ...Object.keys(defaults.data)]);
+    importantKeys.forEach(k => {
+        if (allKeys.has(k)) {
+            console.error(`Register illegal key => ${k}`, options);
+            throw "";
+        }
+    });
 
     if (defaults.temp) {
         let {

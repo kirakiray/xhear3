@@ -18,8 +18,7 @@ let XhearElementHandler = {
                 oldVal = target[key];
 
                 // 设置在原型对象上
-                target.ele._xhearData[key] = value;
-
+                target.ele[XHEARDATA][key] = value;
             } else {
                 // 不是纯数字，设置在proxy对象上
                 return Reflect.set(target, key, value, receiver);
@@ -55,12 +54,14 @@ let XhearElementHandler = {
             oldVal = tarEle;
         }
 
+        let mid = getModifyId(receiver);
+
         // update事件冒泡
         // 事件实例生成
         let eveObj = new XDataEvent('update', receiver);
 
         // 设置 shadowId 在 event Object 上
-        (xvShadowVal) && (eveObj.shadow = xvShadowVal);
+        xvShadowVal && (eveObj.shadow = xvShadowVal);
 
         // 添加修正数据
         eveObj.modify = {
@@ -69,7 +70,8 @@ let XhearElementHandler = {
             genre: "change",
             key,
             value,
-            oldVal
+            oldVal,
+            modifyId: mid
         };
 
         // 触发事件
@@ -231,18 +233,14 @@ setNotEnumer(XhearElementFn, {
 
         return reData;
     },
-    // watch() {},
-    // unwatch() {},
-    // sync() {},
-    // unsync() {},
-    // entrend() {},
     que(expr) {
         return $.que(expr, this.ele);
     }
 });
 
-
-defineProperties(XhearElementFn, {
+// 关键keys
+let importantKeys;
+defineProperties(XhearElementFn, importantKeys = {
     hostkey: {
         get() {
             return Array.from(this.ele.parentElement.children).indexOf(this.ele);
@@ -250,16 +248,9 @@ defineProperties(XhearElementFn, {
     },
     parent: {
         get() {
-            let {
-                parentElement
-            } = this.ele;
-
+            let parentElement = getParentEle(this.ele);
             if (!parentElement) {
                 return;
-            }
-
-            if (parentElement.xvContent) {
-                parentElement = parentElement._xhearData.$host.ele;
             }
             return createXHearElement(parentElement);
         }
@@ -290,17 +281,10 @@ defineProperties(XhearElementFn, {
             return attributes.hasOwnProperty('xv-ele') || attributes.hasOwnProperty('xv-render');
         }
     },
-    // 是否渲染过
-    rendered: {
-        get() {
-            return !!this.ele.xvRender;
-        }
-    },
     class: {
         get() {
             return this.ele.classList;
         }
-
     },
     string: {
         get() {
@@ -344,3 +328,4 @@ defineProperties(XhearElementFn, {
         }
     }
 });
+importantKeys = Object.keys(importantKeys);

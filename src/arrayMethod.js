@@ -22,7 +22,7 @@ const xeSplice = (_this, index, howmany, ...items) => {
     } else {
         _entrendModifyId = getRandomId();
 
-        addModify(_this, _entrendModifyId);
+        readyClearModifyId(_this, _entrendModifyId);
     }
 
     let reArr = [];
@@ -119,7 +119,7 @@ setNotEnumer(XhearElementFn, {
             delete this._entrendModifyId;
         } else {
             _entrendModifyId = getRandomId();
-            addModify(this, _entrendModifyId);
+            readyClearModifyId(this, _entrendModifyId);
         }
 
         let contentEle = getContentEle(this.ele);

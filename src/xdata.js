@@ -126,7 +126,7 @@ let seekData = (data, exprObj) => {
 }
 
 // modifyId清理设置
-let addModify = (xdata, modifyId) => {
+let readyClearModifyId = (xdata, modifyId) => {
     let modifyHost = xdata[MODIFYHOST];
     modifyHost.push(modifyId);
 
@@ -136,6 +136,24 @@ let addModify = (xdata, modifyId) => {
         modifyHost.length = 0;
         modifyHost = null;
     }, 5000);
+}
+
+// 获取或制作modifyId
+let getModifyId = (_this) => {
+    let {
+        _entrendModifyId
+    } = _this;
+
+    if (_entrendModifyId) {
+        // 拿到数据立刻删除
+        delete _this._entrendModifyId;
+    } else {
+        _entrendModifyId = getRandomId();
+
+        readyClearModifyId(_this, _entrendModifyId);
+    }
+
+    return _entrendModifyId;
 }
 
 // main class
@@ -186,7 +204,7 @@ defineProperties(XDataEvent.prototype, {
 
             let reobj = {
                 genre: modify.genre,
-                keys: this.keys
+                keys: this.keys.slice()
             };
 
             defineProperty(reobj, "oldVal", {
@@ -195,7 +213,7 @@ defineProperties(XDataEvent.prototype, {
 
             switch (modify.genre) {
                 case "arrayMethod":
-                    let {
+                    var {
                         methodName,
                         args,
                         modifyId
@@ -208,8 +226,9 @@ defineProperties(XDataEvent.prototype, {
                     });
                     break;
                 default:
-                    let {
-                        value
+                    var {
+                        value,
+                        modifyId
                     } = modify;
 
                     if (isXData(value)) {
@@ -218,6 +237,7 @@ defineProperties(XDataEvent.prototype, {
                     assign(reobj, {
                         key: modify.key,
                         value,
+                        modifyId
                     });
                     break;
             }
@@ -313,18 +333,7 @@ let XDataFn = XData.prototype = {};
                 // 设置不可执行setHandler
                 this[RUNARRMETHOD] = 1;
 
-                let {
-                    _entrendModifyId
-                } = this;
-
-                if (_entrendModifyId) {
-                    // 拿到数据立刻删除
-                    delete this._entrendModifyId;
-                } else {
-                    _entrendModifyId = getRandomId();
-
-                    addModify(this, _entrendModifyId);
-                }
+                let mid = getModifyId(this);
 
                 let redata = arrayFnFunc.apply(this, args);
 
@@ -335,7 +344,7 @@ let XDataFn = XData.prototype = {};
                     genre: "arrayMethod",
                     methodName,
                     args,
-                    modifyId: _entrendModifyId
+                    modifyId: mid
                 };
 
                 this.emit(eveObj);
@@ -365,18 +374,7 @@ setNotEnumer(XDataFn, {
         // 设置不可执行setHandler
         this[RUNARRMETHOD] = 1;
 
-        let {
-            _entrendModifyId
-        } = this;
-
-        if (_entrendModifyId) {
-            // 拿到数据立刻删除
-            delete this._entrendModifyId;
-        } else {
-            _entrendModifyId = getRandomId();
-
-            addModify(this, _entrendModifyId);
-        }
+        let mid = getModifyId(this);
 
         // 传送的后期参数
         let args;
@@ -412,7 +410,7 @@ setNotEnumer(XDataFn, {
             genre: "arrayMethod",
             methodName: "sort",
             args,
-            modifyId: _entrendModifyId
+            modifyId: mid
         };
 
         this.emit(eveObj);
@@ -605,22 +603,28 @@ setNotEnumer(XDataFn, {
         // 目标数据
         let target = this;
 
+        let {
+            modifyId
+        } = options;
+
         // 获取target
         options.keys.forEach(k => {
             target = target[k];
         });
 
+        // 判断是否运行过
+        if (modifyId) {
+            if (this[MODIFYHOST].includes(modifyId)) {
+                return this;
+            } else {
+                readyClearModifyId(this, modifyId);
+                // 临时记录数据
+                target._entrendModifyId = modifyId;
+            }
+        }
+
         switch (options.genre) {
             case "arrayMethod":
-                // 判断是否运行过
-                if (this[MODIFYHOST].includes(options.modifyId)) {
-                    return this;
-                } else {
-                    addModify(this, options.modifyId);
-                }
-
-                // 临时记录数据
-                target._entrendModifyId = options.modifyId;
                 target[options.methodName](...options.args);
                 break;
             case "delete":
@@ -629,6 +633,11 @@ setNotEnumer(XDataFn, {
             default:
                 target[options.key] = options.value;
                 break;
+        }
+
+        if (modifyId) {
+            // 删除临时记录数据
+            delete target._entrendModifyId;
         }
 
         return this;
@@ -1062,6 +1071,8 @@ let XDataHandler = {
                 }
             }
 
+            let mid = getModifyId(receiver);
+
             // 事件实例生成
             let eveObj = new XDataEvent('update', receiver);
 
@@ -1078,7 +1089,8 @@ let XDataHandler = {
                 genre: isFirst ? "set" : "change",
                 key,
                 value,
-                oldVal
+                oldVal,
+                modifyId: mid
             };
 
             reData = Reflect.set(xdata, key, newValue, receiver)

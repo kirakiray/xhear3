@@ -1,5 +1,5 @@
 (() => {
-    let tester = expect(8, 'watch test');
+    let tester = expect(9, 'watch test');
 
     $.register({
         tag: "t2",
@@ -22,6 +22,9 @@
 
     // 等渲染完毕
     setTimeout(() => {
+        window.cloneDObj = $.xdata(d.object);
+        cloneDObj.sync(d);
+
         // watch监听
         d.watch(e => {
             tester.ok(e.modifys.length == 2, 'modifys length ok');
@@ -87,6 +90,10 @@
         };
 
         tester.ok(d[0].text.trim() == "change t2-1", 'replace ok');
+
+        setTimeout(() => {
+            tester.ok(cloneDObj[0].selected == 1, 'sync ok');
+        }, 500);
 
     }, 100);
 })();

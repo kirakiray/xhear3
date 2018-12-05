@@ -42,6 +42,7 @@ const XHEAREVENT = "_xevent_" + getRandomId();
 const EXKEYS = "_exkeys_" + getRandomId();
 const ATTACHED = "_attached_" + getRandomId();
 const DETACHED = "_detached_" + getRandomId();
+const XHEARDATA = "_xheardata_" + getRandomId();
 
 // database
 // 注册数据
@@ -59,14 +60,12 @@ const getContentEle = (tarEle) => {
 
     // 判断是否xvRender
     while (contentEle.xvRender) {
-        let {
-            _xhearData
-        } = contentEle;
+        let xhearData = contentEle[XHEARDATA];
 
-        if (_xhearData) {
+        if (xhearData) {
             let {
                 $content
-            } = _xhearData;
+            } = xhearData;
 
             if ($content) {
                 contentEle = $content.ele;
@@ -75,6 +74,23 @@ const getContentEle = (tarEle) => {
     }
 
     return contentEle;
+}
+
+// 获取父容器
+const getParentEle = (tarEle) => {
+    let {
+        parentElement
+    } = tarEle;
+
+    if (!parentElement) {
+        return;
+    }
+
+    while (parentElement.xvContent) {
+        parentElement = parentElement[XHEARDATA].$host.ele;
+    }
+
+    return parentElement;
 }
 
 // 判断元素是否符合条件
@@ -157,10 +173,10 @@ const createXHearElement = ele => {
     if (!ele) {
         return;
     }
-    let xhearData = ele._xhearData;
+    let xhearData = ele[XHEARDATA];
     if (!xhearData) {
         xhearData = new XhearElement(ele);
-        ele._xhearData = xhearData;
+        ele[XHEARDATA] = xhearData;
     }
 
     // 防止内存泄露，隔离 xhearData 和 ele
