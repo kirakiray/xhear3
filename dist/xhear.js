@@ -239,6 +239,60 @@ const createXData = (obj, options) => {
     return redata;
 };
 
+// 销毁数据绑定的事件函数
+const clearXdata = (xdata) => {
+    if (isXData(xdata)) {
+        // 更新状态
+        xdata.parent = null;
+        xdata.hostkey = null;
+        xdata.status = "readyDestory";
+
+        nextTick(() => {
+            if (xdata.parent && xdata.hostkey && xdata.status != "root") {
+                // 挂载其他对象上成功，修正状态
+                xdata.status = "binding";
+                return;
+            }
+
+            // 开始清扫所有绑定
+            // 先清扫 sync
+            xdata[SYNCHOST].forEach(e => {
+                xdata.unsync(e.opp);
+            });
+
+            // 清扫 watch
+            xdata[WATCHHOST] = {};
+
+            // 清扫 on
+            xdata[EVES] = {};
+
+            xdata[MODIFYHOST] = [];
+            clearTimeout(xdata[MODIFYTIMER]);
+        });
+    }
+}
+
+const mapData = (data, options) => {
+    options.forEach(e => {
+        switch (e.type) {
+            case "map":
+                if (!isUndefined(data[e.key])) {
+                    data[e.toKey] = data[e.key];
+                    delete data[e.key];
+                }
+                break;
+        }
+    });
+
+    for (let k in data) {
+        let d = data[k];
+
+        if (d instanceof Object) {
+            mapData(d, options);
+        }
+    }
+}
+
 // 按条件判断数据是否符合条件
 const conditData = (exprKey, exprValue, exprType, exprEqType, tarData) => {
     let reData = 0;
@@ -497,7 +551,7 @@ function XData(obj, options = {}) {
     });
 
     let opt = {
-        status: "root",
+        // status: "root",
         // 设置数组长度
         length,
         // 事件寄宿对象
@@ -510,14 +564,25 @@ function XData(obj, options = {}) {
         [MODIFYTIMER]: ""
     };
 
-    if (options.parent) {
-        opt.status = "binding";
-        opt.parent = options.parent;
-        opt.hostkey = options.hostkey;
-    }
-
     // 设置不可枚举数据
     setNotEnumer(this, opt);
+
+    // if (options.parent) {
+    defineProperties(this, {
+        status: {
+            writable: true,
+            value: options.parent ? "binding" : "root"
+        },
+        parent: {
+            writable: true,
+            value: options.parent
+        },
+        hostkey: {
+            writable: true,
+            value: options.hostkey
+        }
+    });
+    // }
 
     // 返回Proxy对象
     return proxyThis;
@@ -552,6 +617,17 @@ let XDataFn = XData.prototype = {};
                 let mid = getModifyId(this);
 
                 let redata = arrayFnFunc.apply(this, args);
+
+                // 根据方法添加删除装填
+                switch (methodName) {
+                    case "shift":
+                    case "pop":
+                    case "splice":
+                        redata.forEach(oldVal => {
+                            clearXdata(oldVal);
+                        });
+                        break;
+                }
 
                 // 事件实例生成
                 let eveObj = new XDataEvent('update', this);
@@ -1145,6 +1221,67 @@ setNotEnumer(XDataFn, {
 
         return this;
     },
+    virData(options) {
+        let cloneData = this.object;
+
+        // 重置数据
+        mapData(cloneData, options);
+
+        // 提取关键数据
+        let keyMapObj = {};
+        let reserveKeyMapObj = {};
+        options.forEach(c => {
+            switch (c.type) {
+                case "map":
+                    keyMapObj[c.key] = c.toKey;
+                    reserveKeyMapObj[c.toKey] = c.key;
+                    break;
+            }
+        });
+
+        // 转换为xdata
+        cloneData = createXData(cloneData);
+
+        let _thisUpdateFunc;
+        this.on('update', _thisUpdateFunc = e => {
+            let {
+                trend
+            } = e;
+
+            let tarKey = keyMapObj[trend.key];
+            if (!isUndefined(tarKey)) {
+                // 修正trend数据
+                trend.key = tarKey;
+                cloneData.entrend(trend);
+            }
+        });
+
+        cloneData.on('update', e => {
+            let {
+                trend
+            } = e;
+
+            let tarKey = reserveKeyMapObj[trend.key];
+
+            if (!isUndefined(tarKey)) {
+                trend.key = tarKey;
+                this.entrend(trend);
+            }
+        });
+
+        // 修正remove方法
+        defineProperty(cloneData, "remove", {
+            value(...args) {
+                if (!args.length) {
+                    // 确认删除自身，清除this的函数
+                    this.off('update', _thisUpdateFunc);
+                }
+                XDataFn.remove.call(cloneData, ...args);
+            }
+        });
+
+        return cloneData;
+    },
     // 删除相应Key的值
     removeByKey(key) {
         // 删除子数据
@@ -1164,11 +1301,15 @@ setNotEnumer(XDataFn, {
                 parent
             } = this;
 
-            // 删除
-            parent.removeByKey(this.hostkey);
+            if (parent) {
+                // 删除
+                parent.removeByKey(this.hostkey);
+            } else {
+                clearXdata(this);
+            }
         } else {
             if (isXData(value)) {
-                this.removeByKey(value.hostkey);
+                (value.parent == this) && this.removeByKey(value.hostkey);
             } else {
                 let tarId = this.indexOf(value);
                 if (tarId > -1) {
@@ -1253,7 +1394,7 @@ let XDataHandler = {
             if (value.parent == receiver) {
                 value.hostkey = key;
             } else {
-                if (value.status == "root") {
+                if (value.status !== "binding") {
                     value.status = 'binding';
                 } else {
                     // 从原来的地方拿走，先从原处删除在安上
@@ -1350,6 +1491,10 @@ let XDataHandler = {
         let oldVal = xdata[key];
 
         let reData = Reflect.deleteProperty(xdata, key);
+
+        if (isXData(oldVal)) {
+            clearXdata(oldVal);
+        }
 
         // 事件实例生成
         let eveObj = new XDataEvent('update', receiver);
@@ -2068,7 +2213,16 @@ const renderEle = (ele) => {
     let xhearData = ele[XHEARDATA];
 
     // 合并 proto 的函数
-    tdb.proto && assign(xhearData, tdb.proto);
+    let {
+        proto
+    } = tdb;
+    if (proto) {
+        Object.keys(proto).forEach(k => {
+            defineProperty(xhearData, k, {
+                value: proto[k]
+            });
+        });
+    }
 
     // 全部设置 shadow id
     Array.from(ele.querySelectorAll("*")).forEach(ele => ele.setAttribute('xv-shadow', renderId));
@@ -2235,7 +2389,9 @@ const renderEle = (ele) => {
     // 渲染完成，设置renderID
     ele.removeAttribute('xv-ele');
     ele.setAttribute('xv-render', renderId);
-    ele.xvRender = xhearData.xvRender = renderId;
+    defineProperty(xhearData, 'xvRender', {
+        value: ele.xvRender = renderId
+    });
 
     // 执行inited 函数
     tdb.inited && tdb.inited.call(xhearEle);

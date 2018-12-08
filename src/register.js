@@ -24,7 +24,16 @@ const renderEle = (ele) => {
     let xhearData = ele[XHEARDATA];
 
     // 合并 proto 的函数
-    tdb.proto && assign(xhearData, tdb.proto);
+    let {
+        proto
+    } = tdb;
+    if (proto) {
+        Object.keys(proto).forEach(k => {
+            defineProperty(xhearData, k, {
+                value: proto[k]
+            });
+        });
+    }
 
     // 全部设置 shadow id
     Array.from(ele.querySelectorAll("*")).forEach(ele => ele.setAttribute('xv-shadow', renderId));
@@ -191,7 +200,9 @@ const renderEle = (ele) => {
     // 渲染完成，设置renderID
     ele.removeAttribute('xv-ele');
     ele.setAttribute('xv-render', renderId);
-    ele.xvRender = xhearData.xvRender = renderId;
+    defineProperty(xhearData, 'xvRender', {
+        value: ele.xvRender = renderId
+    });
 
     // 执行inited 函数
     tdb.inited && tdb.inited.call(xhearEle);
