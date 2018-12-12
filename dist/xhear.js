@@ -2203,7 +2203,7 @@ const renderEle = (ele) => {
     let childs = Array.from(ele.childNodes);
 
     // 填充代码
-    tdb.temp && (ele.innerHTML = tdb.temp);
+    ele.innerHTML = tdb.temp;
 
     // 生成renderId
     let renderId = renderEleId++;
@@ -2231,15 +2231,24 @@ const renderEle = (ele) => {
     // 让ele使用渲染完成的内元素
     Array.from(ele.querySelectorAll(`[xv-ele][xv-shadow="${renderId}"]`)).forEach(ele => renderEle(ele));
 
+    // 渲染完成，设置renderID
+    ele.removeAttribute('xv-ele');
+    ele.setAttribute('xv-render', renderId);
+    defineProperty(xhearData, 'xvRender', {
+        value: ele.xvRender = renderId
+    });
+
     // 获取 xv-content
     let contentEle = ele.querySelector(`[xv-content][xv-shadow="${renderId}"]`);
-    contentEle.xvContent = renderId;
-
-    // 初始化一次
-    createXHearElement(contentEle);
 
     // 判断是否有$content
     if (contentEle) {
+        // 设置renderId
+        contentEle.xvContent = renderId;
+
+        // 初始化一次
+        createXHearElement(contentEle);
+
         defineProperty(xhearData, '$content', {
             get() {
                 return createXHearElement(contentEle);
@@ -2262,6 +2271,11 @@ const renderEle = (ele) => {
         // 将原来的东西塞回去
         childs.forEach(ele => {
             contentEle.appendChild(ele);
+        });
+    } else {
+        // 将原来的东西塞回去
+        childs.forEach(e => {
+            ele.appendChild(e);
         });
     }
 
@@ -2386,13 +2400,6 @@ const renderEle = (ele) => {
         });
     }
 
-    // 渲染完成，设置renderID
-    ele.removeAttribute('xv-ele');
-    ele.setAttribute('xv-render', renderId);
-    defineProperty(xhearData, 'xvRender', {
-        value: ele.xvRender = renderId
-    });
-
     // 执行inited 函数
     tdb.inited && tdb.inited.call(xhearEle);
 
@@ -2481,6 +2488,11 @@ const register = (options) => {
 
     // 设置映射tag数据
     regDatabase.set(defaults.tag, defaults);
+
+    // 尝试查找页面存在的元素
+    Array.from(document.querySelectorAll(defaults.tag + '[xv-ele]')).forEach(e => {
+        renderEle(e);
+    });
 }
 
 // 初始化全局监听dom事件

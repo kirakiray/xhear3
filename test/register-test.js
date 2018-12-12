@@ -1,5 +1,6 @@
 (() => {
     let tester = expect(10, 'register test');
+    let c = $('#c');
 
     $.register({
         tag: "testinner",
