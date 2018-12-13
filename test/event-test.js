@@ -1,5 +1,5 @@
 (() => {
-    let tester = expect(4, 'event test');
+    let tester = expect(5, 'event test');
 
     let a = $('#a');
 
@@ -24,5 +24,16 @@
         text: "bbb1_2",
         class: "bbb1_2"
     };
+
+    // 模拟 selector 测试
+    b.on('ka', (e) => {
+        // if (e.target.parents($('.bbb'))) {
+        if (0 in e.target.parents('.bbb')) {
+            tester.ok(1, 'selector ok');
+        }
+    });
+
+    $('.bbb1_2').emit('ka');
+    $('.bbb2_1').emit('ka');
 
 })();

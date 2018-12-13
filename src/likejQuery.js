@@ -37,15 +37,36 @@ setNotEnumer(XhearElementFn, {
                 tempTar = tempTar.parent;
             }
         } else {
-            while (tempTar && tempTar.tag != "html") {
-                if (meetsEle(tempTar.ele, expr)) {
-                    pars.push(tempTar);
+            if (getType(expr) == "string") {
+                while (tempTar && tempTar.tag != "html") {
+                    if (meetsEle(tempTar.ele, expr)) {
+                        pars.push(tempTar);
+                    }
+                    tempTar = tempTar.parent;
                 }
-                tempTar = tempTar.parent;
+            } else {
+                if (expr instanceof XhearElement) {
+                    expr = expr.ele;
+                }
+
+                // 从属 element
+                if (expr instanceof Element) {
+                    while (tempTar && tempTar.tag != "html") {
+                        if (tempTar.ele == expr) {
+                            return true;
+                        }
+                        tempTar = tempTar.parent;
+                    }
+                }
+
+                return false;
             }
         }
 
         return pars;
+    },
+    is(expr) {
+        return meetsEle(this.ele, expr)
     },
     siblings(expr) {
         // 获取父层的所有子元素
