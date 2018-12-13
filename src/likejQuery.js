@@ -65,6 +65,17 @@ setNotEnumer(XhearElementFn, {
 
         return pars;
     },
+    parentsUntil(expr) {
+        if (expr) {
+            let tempTar = this.parent;
+            while (tempTar && tempTar.tag != "html") {
+                if (meetsEle(tempTar.ele, expr)) {
+                    return tempTar;
+                }
+                tempTar = tempTar.parent;
+            }
+        }
+    },
     is(expr) {
         return meetsEle(this.ele, expr)
     },
