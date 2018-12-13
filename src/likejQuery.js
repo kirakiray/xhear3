@@ -101,6 +101,9 @@ setNotEnumer(XhearElementFn, {
     // like jQuery function find
     que(expr) {
         return $.que(expr, this.ele);
+    },
+    queAll(expr) {
+        return $.queAll(expr, this.ele);
     }
 });
 

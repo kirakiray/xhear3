@@ -2142,6 +2142,9 @@ setNotEnumer(XhearElementFn, {
     // like jQuery function find
     que(expr) {
         return $.que(expr, this.ele);
+    },
+    queAll(expr) {
+        return $.queAll(expr, this.ele);
     }
 });
 
@@ -2606,7 +2609,8 @@ const attachedFun = (ele, tachedFunName, tachedKey) => {
         fn: XhearElementFn,
         type: getType,
         init: createXHearElement,
-        que: (expr, root = document) => Array.from(root.querySelectorAll(expr)).map(e => createXHearElement(e)),
+        que: (expr, root = document) => createXHearElement(root.querySelector(expr)),
+        queAll: (expr, root = document) => Array.from(root.querySelectorAll(expr)).map(e => createXHearElement(e)),
         xdata: createXData,
         register
     });
