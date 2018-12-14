@@ -193,6 +193,12 @@ setNotEnumer(XhearElementFn, {
                     tempTarget = tempTarget.parent;
                 }
 
+                // 添加 originalEvent
+                eveObj.originalEvent = e;
+
+                // 添加默认方法
+                eveObj.preventDefault = e.preventDefault.bind(e);
+
                 this.emit(eveObj);
             });
             this[XHEAREVENT][eventName] = eventCall;

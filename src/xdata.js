@@ -786,6 +786,8 @@ setNotEnumer(XDataFn, {
                                     modifys: Array.from(tarExprObj.modifys)
                                 }));
                             });
+                            // 事后清空
+                            tarExprObj.modifys.length = 0;
                             break;
                         case "watchKey":
                             tarExprObj.arr.forEach(callback => {
@@ -795,6 +797,8 @@ setNotEnumer(XDataFn, {
                                     modifys: Array.from(tarExprObj.modifys)
                                 }));
                             });
+                            // 事后清空
+                            tarExprObj.modifys.length = 0;
                             break;
                         case "seekOri":
                             // 监听动态数据
@@ -1186,6 +1190,9 @@ let XDataHandler = {
                 }
                 value.parent = receiver;
                 value.hostkey = key;
+
+                // 替换value为普通对象
+                value = value.object;
             }
         } else {
             // 数据转换

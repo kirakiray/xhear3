@@ -16,6 +16,25 @@ setNotEnumer(XhearElementFn, {
         xeSplice(this.parent, this.hostkey + 1, 0, data);
         return this;
     },
+    siblings(expr) {
+        // 获取父层的所有子元素
+        let parChilds = Array.from(this.ele.parentElement.children);
+
+        // 删除自身
+        let tarId = parChilds.indexOf(this.ele);
+        parChilds.splice(tarId, 1);
+
+        // 删除不符合规定的
+        if (expr) {
+            parChilds = parChilds.filter(e => {
+                if (meetsEle(e, expr)) {
+                    return true;
+                }
+            });
+        }
+
+        return parChilds.map(e => createXHearElement(e));
+    },
     remove() {
         if (/\D/.test(this.hostkey)) {
             console.error(`can't delete this key => ${this.hostkey}`, this, data);
@@ -24,7 +43,8 @@ setNotEnumer(XhearElementFn, {
         xeSplice(this.parent, this.hostkey, 1);
     },
     empty() {
-        this.html = "";
+        // this.html = "";
+        this.splice(0, this.length);
         return this;
     },
     parents(expr) {
@@ -76,27 +96,24 @@ setNotEnumer(XhearElementFn, {
             }
         }
     },
+    attr(key, value) {
+        if (!isUndefined(value)) {
+            let regTagData = regDatabase.get(this.tag);
+            if (regTagData.attrs.includes(key)) {
+                this[key] = value;
+            } else {
+                this.ele.setAttribute(key, value);
+            }
+        } else if (key instanceof Object) {
+            Object.keys(key).forEach(k => {
+                this.attr(k, key[k]);
+            });
+        } else {
+            return this.ele.getAttribute(key);
+        }
+    },
     is(expr) {
         return meetsEle(this.ele, expr)
-    },
-    siblings(expr) {
-        // 获取父层的所有子元素
-        let parChilds = Array.from(this.ele.parentElement.children);
-
-        // 删除自身
-        let tarId = parChilds.indexOf(this.ele);
-        parChilds.splice(tarId, 1);
-
-        // 删除不符合规定的
-        if (expr) {
-            parChilds = parChilds.filter(e => {
-                if (meetsEle(e, expr)) {
-                    return true;
-                }
-            });
-        }
-
-        return parChilds.map(e => createXHearElement(e));
     },
     // like jQuery function find
     que(expr) {

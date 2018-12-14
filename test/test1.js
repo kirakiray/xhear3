@@ -1,6 +1,6 @@
 let a = $('#a');
 
-let b = $('.aaa.bbb');
+// let b = $('.aaa.bbb');
 
 b.style = {
     color: "red"

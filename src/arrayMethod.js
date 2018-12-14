@@ -42,9 +42,9 @@ const xeSplice = (_this, index, howmany, ...items) => {
         let childEle = children[index];
 
         reArr.push(parseToXHearElement(childEle));
-
+ 
         // 删除目标元素
-        ele.removeChild(childEle);
+        contentEle.removeChild(childEle);
 
         // 数量减少
         howmany--;

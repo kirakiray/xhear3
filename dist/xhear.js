@@ -1002,6 +1002,8 @@ setNotEnumer(XDataFn, {
                                     modifys: Array.from(tarExprObj.modifys)
                                 }));
                             });
+                            // 事后清空
+                            tarExprObj.modifys.length = 0;
                             break;
                         case "watchKey":
                             tarExprObj.arr.forEach(callback => {
@@ -1011,6 +1013,8 @@ setNotEnumer(XDataFn, {
                                     modifys: Array.from(tarExprObj.modifys)
                                 }));
                             });
+                            // 事后清空
+                            tarExprObj.modifys.length = 0;
                             break;
                         case "seekOri":
                             // 监听动态数据
@@ -1402,6 +1406,9 @@ let XDataHandler = {
                 }
                 value.parent = receiver;
                 value.hostkey = key;
+
+                // 替换value为普通对象
+                value = value.object;
             }
         } else {
             // 数据转换
@@ -1710,6 +1717,12 @@ setNotEnumer(XhearElementFn, {
                     tempTarget = tempTarget.parent;
                 }
 
+                // 添加 originalEvent
+                eveObj.originalEvent = e;
+
+                // 添加默认方法
+                eveObj.preventDefault = e.preventDefault.bind(e);
+
                 this.emit(eveObj);
             });
             this[XHEAREVENT][eventName] = eventCall;
@@ -1891,9 +1904,9 @@ const xeSplice = (_this, index, howmany, ...items) => {
         let childEle = children[index];
 
         reArr.push(parseToXHearElement(childEle));
-
+ 
         // 删除目标元素
-        ele.removeChild(childEle);
+        contentEle.removeChild(childEle);
 
         // 数量减少
         howmany--;
@@ -2057,6 +2070,25 @@ setNotEnumer(XhearElementFn, {
         xeSplice(this.parent, this.hostkey + 1, 0, data);
         return this;
     },
+    siblings(expr) {
+        // 获取父层的所有子元素
+        let parChilds = Array.from(this.ele.parentElement.children);
+
+        // 删除自身
+        let tarId = parChilds.indexOf(this.ele);
+        parChilds.splice(tarId, 1);
+
+        // 删除不符合规定的
+        if (expr) {
+            parChilds = parChilds.filter(e => {
+                if (meetsEle(e, expr)) {
+                    return true;
+                }
+            });
+        }
+
+        return parChilds.map(e => createXHearElement(e));
+    },
     remove() {
         if (/\D/.test(this.hostkey)) {
             console.error(`can't delete this key => ${this.hostkey}`, this, data);
@@ -2065,7 +2097,8 @@ setNotEnumer(XhearElementFn, {
         xeSplice(this.parent, this.hostkey, 1);
     },
     empty() {
-        this.html = "";
+        // this.html = "";
+        this.splice(0, this.length);
         return this;
     },
     parents(expr) {
@@ -2117,27 +2150,24 @@ setNotEnumer(XhearElementFn, {
             }
         }
     },
+    attr(key, value) {
+        if (!isUndefined(value)) {
+            let regTagData = regDatabase.get(this.tag);
+            if (regTagData.attrs.includes(key)) {
+                this[key] = value;
+            } else {
+                this.ele.setAttribute(key, value);
+            }
+        } else if (key instanceof Object) {
+            Object.keys(key).forEach(k => {
+                this.attr(k, key[k]);
+            });
+        } else {
+            return this.ele.getAttribute(key);
+        }
+    },
     is(expr) {
         return meetsEle(this.ele, expr)
-    },
-    siblings(expr) {
-        // 获取父层的所有子元素
-        let parChilds = Array.from(this.ele.parentElement.children);
-
-        // 删除自身
-        let tarId = parChilds.indexOf(this.ele);
-        parChilds.splice(tarId, 1);
-
-        // 删除不符合规定的
-        if (expr) {
-            parChilds = parChilds.filter(e => {
-                if (meetsEle(e, expr)) {
-                    return true;
-                }
-            });
-        }
-
-        return parChilds.map(e => createXHearElement(e));
     },
     // like jQuery function find
     que(expr) {
