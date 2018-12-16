@@ -854,9 +854,10 @@ setNotEnumer(XDataFn, {
         // 判断是否expr
         if (watchType == "seekOri") {
             let sData = this.seek(expr);
-            callback({
+            callback(new WatchData({
+                expr,
                 val: sData
-            });
+            }));
             tarExprObj.oldVals = sData;
         }
 
