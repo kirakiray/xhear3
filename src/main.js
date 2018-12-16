@@ -168,6 +168,15 @@ seekData = (data, exprObj) => {
     return arr;
 }
 
+// 重写isXDataEqual
+isXDataEqual = (xd1, xd2) => {
+    if (xd1 instanceof XhearElement && xd2 instanceof XhearElement) {
+        return xd1.ele === xd2.ele;
+    }
+
+    return xd1 === xd2;
+}
+
 // XhearElement prototype
 let XhearElementFn = XhearElement.prototype = Object.create(XDataFn);
 setNotEnumer(XhearElementFn, {

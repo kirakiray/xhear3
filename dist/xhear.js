@@ -272,6 +272,14 @@ const clearXdata = (xdata) => {
     }
 }
 
+// 判断两个xdata数据是否相等
+let isXDataEqual = (xd1, xd2) => {
+    if (xd1 === xd2) {
+        return true;
+    }
+}
+
+// virData用的数据映射方法
 const mapData = (data, options) => {
     options.forEach(e => {
         switch (e.type) {
@@ -1030,7 +1038,7 @@ setNotEnumer(XDataFn, {
                                 isEq = 0;
                             }
                             isEq && sData.some((e, i) => {
-                                if (oldVals[i] != e) {
+                                if (!isXDataEqual(oldVals[i], e)) {
                                     isEq = 0;
                                     return true;
                                 }
@@ -1690,6 +1698,15 @@ seekData = (data, exprObj) => {
     }
     searchFunc = null;
     return arr;
+}
+
+// 重写isXDataEqual
+isXDataEqual = (xd1, xd2) => {
+    if (xd1 instanceof XhearElement && xd2 instanceof XhearElement) {
+        return xd1.ele === xd2.ele;
+    }
+
+    return xd1 === xd2;
 }
 
 // XhearElement prototype
