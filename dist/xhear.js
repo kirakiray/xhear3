@@ -2169,12 +2169,13 @@ setNotEnumer(XhearElementFn, {
     },
     attr(key, value) {
         if (!isUndefined(value)) {
-            let regTagData = regDatabase.get(this.tag);
-            if (regTagData.attrs.includes(key)) {
-                this[key] = value;
-            } else {
-                this.ele.setAttribute(key, value);
+            if (this.xvRender) {
+                let regTagData = regDatabase.get(this.tag);
+                if (regTagData.attrs.includes(key)) {
+                    this[key] = value;
+                }
             }
+            this.ele.setAttribute(key, value);
         } else if (key instanceof Object) {
             Object.keys(key).forEach(k => {
                 this.attr(k, key[k]);
@@ -2182,6 +2183,10 @@ setNotEnumer(XhearElementFn, {
         } else {
             return this.ele.getAttribute(key);
         }
+    },
+    removeAttr(key) {
+        this.ele.removeAttribute(key);
+        return this;
     },
     is(expr) {
         return meetsEle(this.ele, expr)
