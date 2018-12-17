@@ -19,3 +19,5 @@ a.one('click', cfun = (e, data) => {
 let c = $('#c');
 let main = $('#main');
 let d = $('#d');
+
+let boxTar = $('#boxTar');

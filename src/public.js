@@ -70,7 +70,6 @@ const getContentEle = (tarEle) => {
             if ($content) {
                 contentEle = $content.ele;
             } else {
-                // contentEle 
                 break;
             }
         }

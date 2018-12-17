@@ -200,5 +200,47 @@ defineProperties(XhearElementFn, {
             }
             return reobj;
         }
+    },
+    width: {
+        get() {
+            return parseInt(getComputedStyle(this.ele).width);
+        }
+    },
+    height: {
+        get() {
+            return parseInt(getComputedStyle(this.ele).height);
+        }
+    },
+    innerWidth: {
+        get() {
+            return this.ele.clientWidth;
+        }
+    },
+    innerHeight: {
+        get() {
+            return this.ele.clientHeight;
+        }
+    },
+    offsetWidth: {
+        get() {
+            return this.ele.offsetWidth;
+        }
+    },
+    offsetHeight: {
+        get() {
+            return this.ele.offsetHeight;
+        }
+    },
+    outerWidth: {
+        get() {
+            let tarSty = getComputedStyle(this.ele);
+            return this.ele.offsetWidth + parseInt(tarSty['margin-left']) + parseInt(tarSty['margin-right']);
+        }
+    },
+    outerHeight: {
+        get() {
+            let tarSty = getComputedStyle(this.ele);
+            return this.ele.offsetHeight + parseInt(tarSty['margin-top']) + parseInt(tarSty['margin-bottom']);
+        }
     }
 });
