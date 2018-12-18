@@ -121,6 +121,20 @@ const parseStringToDom = (str) => {
     });
 };
 
+// 渲染所有xv-ele
+const renderAllXvEle = (ele) => {
+    // 判断内部元素是否有xv-ele
+    let eles = ele.querySelectorAll('[xv-ele]');
+    Array.from(eles).forEach(e => {
+        renderEle(e);
+    });
+
+    let isXvEle = ele.getAttribute('xv-ele');
+    if (!isUndefined(isXvEle) && isXvEle !== null) {
+        renderEle(ele);
+    }
+}
+
 // 转换 xhearData 到 element
 const parseDataToDom = (data) => {
     if (data.tag && !(data instanceof XhearElement)) {
@@ -204,9 +218,11 @@ const parseToXHearElement = expr => {
     let exprType = getType(expr);
 
     if (expr instanceof Element) {
+        renderAllXvEle(expr);
         reobj = createXHearElement(expr);
     } else if (exprType == "string") {
         reobj = parseStringToDom(expr)[0];
+        renderAllXvEle(reobj);
         reobj = createXHearElement(reobj);
     } else if (exprType == "object") {
         reobj = parseDataToDom(expr);
@@ -641,6 +657,19 @@ let XDataFn = XData.prototype = {};
 
                 // 事件实例生成
                 let eveObj = new XDataEvent('update', this);
+
+                // 判断添加方法上是否有xdata，存在就干掉它
+                switch (methodName) {
+                    case "splice":
+                    case "unshift":
+                    case "push":
+                        args = args.map(e => {
+                            if (isXData(e)) {
+                                return e.object;
+                            }
+                            return e;
+                        });
+                }
 
                 eveObj.modify = {
                     genre: "arrayMethod",
@@ -2331,6 +2360,11 @@ const renderEle = (ele) => {
         return;
     }
 
+    // 判断没有渲染
+    if (ele.xvRender) {
+        return;
+    }
+
     // 将内容元素拿出来先
     let childs = Array.from(ele.childNodes);
 
@@ -2500,6 +2534,7 @@ const renderEle = (ele) => {
     defineProperty(xhearData, EXKEYS, {
         value: exkeys
     });
+    exkeys.push(...Object.keys(watchMap));
 
     // 合并数据后设置
     exkeys.forEach(k => {

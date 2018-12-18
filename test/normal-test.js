@@ -10,5 +10,4 @@
     tester.ok(boxtar.offsetHeight == 80, "offsetHeight ok");
 
     tester.ok(boxtar.outerHeight == 120, "outerHeight ok");
-
 })();

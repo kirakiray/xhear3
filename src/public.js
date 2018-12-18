@@ -120,6 +120,20 @@ const parseStringToDom = (str) => {
     });
 };
 
+// 渲染所有xv-ele
+const renderAllXvEle = (ele) => {
+    // 判断内部元素是否有xv-ele
+    let eles = ele.querySelectorAll('[xv-ele]');
+    Array.from(eles).forEach(e => {
+        renderEle(e);
+    });
+
+    let isXvEle = ele.getAttribute('xv-ele');
+    if (!isUndefined(isXvEle) && isXvEle !== null) {
+        renderEle(ele);
+    }
+}
+
 // 转换 xhearData 到 element
 const parseDataToDom = (data) => {
     if (data.tag && !(data instanceof XhearElement)) {
@@ -203,9 +217,11 @@ const parseToXHearElement = expr => {
     let exprType = getType(expr);
 
     if (expr instanceof Element) {
+        renderAllXvEle(expr);
         reobj = createXHearElement(expr);
     } else if (exprType == "string") {
         reobj = parseStringToDom(expr)[0];
+        renderAllXvEle(reobj);
         reobj = createXHearElement(reobj);
     } else if (exprType == "object") {
         reobj = parseDataToDom(expr);

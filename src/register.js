@@ -10,6 +10,11 @@ const renderEle = (ele) => {
         return;
     }
 
+    // 判断没有渲染
+    if (ele.xvRender) {
+        return;
+    }
+
     // 将内容元素拿出来先
     let childs = Array.from(ele.childNodes);
 
@@ -179,6 +184,7 @@ const renderEle = (ele) => {
     defineProperty(xhearData, EXKEYS, {
         value: exkeys
     });
+    exkeys.push(...Object.keys(watchMap));
 
     // 合并数据后设置
     exkeys.forEach(k => {
