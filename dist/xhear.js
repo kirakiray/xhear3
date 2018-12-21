@@ -1581,6 +1581,11 @@ let XhearElementHandler = {
             if (target[EXKEYS] && target[EXKEYS].includes(key)) {
                 oldVal = target[key];
 
+                // 一样的值就别折腾
+                if (oldVal == value) {
+                    return;
+                }
+
                 // 设置在原型对象上
                 target.ele[XHEARDATA][key] = value;
             } else {
@@ -2753,5 +2758,10 @@ const attachedFun = (ele, tachedFunName, tachedKey) => {
             renderEle(e);
         });
     });
+
+    // 添加默认样式
+    let mStyle = document.createElement('style');
+    mStyle.innerHTML = "[xv-ele]{display:none;}";
+    document.head.appendChild(mStyle);
 
 })(window);

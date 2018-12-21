@@ -17,6 +17,11 @@ let XhearElementHandler = {
             if (target[EXKEYS] && target[EXKEYS].includes(key)) {
                 oldVal = target[key];
 
+                // 一样的值就别折腾
+                if (oldVal == value) {
+                    return;
+                }
+
                 // 设置在原型对象上
                 target.ele[XHEARDATA][key] = value;
             } else {

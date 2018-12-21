@@ -45,4 +45,9 @@
         });
     });
 
+    // 添加默认样式
+    let mStyle = document.createElement('style');
+    mStyle.innerHTML = "[xv-ele]{display:none;}";
+    document.head.appendChild(mStyle);
+
 })(window);
